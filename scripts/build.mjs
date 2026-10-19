@@ -14,7 +14,10 @@ const options = {
 const workers = { ...options, entryPoints: { background: 'src/background.ts' }, format: 'esm' };
 const content = {
   ...options,
-  entryPoints: { 'content/github': 'src/content/github.ts' },
+  entryPoints: {
+    'content/github': 'src/content/github.ts',
+    'content/activity': 'src/content/activity.ts',
+  },
   format: 'iife',
 };
 

@@ -35,6 +35,7 @@ export const test = base.extend<{ context: BrowserContext; panel: Page }>({
   },
   panel: async ({ context }, use) => {
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+    if (process.env.DEBUG_SW) worker.on('console', (m) => console.log('[sw]', m.text()));
     const id = new URL(worker.url()).host;
     const panel = await context.newPage();
     await panel.setViewportSize({ width: 380, height: 720 });

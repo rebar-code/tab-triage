@@ -1,6 +1,8 @@
+import { requestCapture } from './capture';
 import { closeTabs } from './lib/actions';
 import { toItems } from './lib/items';
 import { dueRule } from './lib/rules';
+import { deletePreviewsForTab, prunePreviews } from './lib/previews';
 import { parseGithubUrl, stateFromHtml } from './lib/sites/github';
 import { GITHUB, OPENED, loadSnapshot, writeGithub } from './lib/storage';
 import type { GithubState } from './lib/types';
@@ -33,7 +35,17 @@ async function recordOpened(url: string | undefined): Promise<void> {
   if (existing[key] === undefined) await chrome.storage.local.set({ [key]: Date.now() });
 }
 chrome.tabs.onCreated.addListener((tab) => void recordOpened(tab.pendingUrl ?? tab.url));
-chrome.tabs.onUpdated.addListener((_id, change) => void recordOpened(change.url));
+chrome.tabs.onUpdated.addListener((_id, change, tab) => {
+  void recordOpened(change.url);
+  if (change.status === 'complete' && tab.active) requestCapture(tab.windowId);
+});
+
+chrome.tabs.onActivated.addListener(({ windowId }) => requestCapture(windowId));
+chrome.windows.onFocusChanged.addListener((windowId) => requestCapture(windowId));
+chrome.tabs.onRemoved.addListener((tabId, info) => {
+  // A closing window may be restored later; prune() catches those.
+  if (!info.isWindowClosing) void deletePreviewsForTab(tabId);
+});
 
 let refreshing = false;
 
@@ -92,15 +104,19 @@ async function prune(): Promise<void> {
     }
   }
   if (stale.length) await chrome.storage.local.remove(stale);
+  await prunePreviews(urls);
 }
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'tick') return;
+  const focused = await chrome.windows.getLastFocused().catch(() => null);
+  if (focused?.focused && focused.id !== undefined) requestCapture(focused.id);
   await refreshGithub();
   await runRules();
   await prune();
 });
 
-chrome.runtime.onMessage.addListener((message: { type?: string }) => {
+chrome.runtime.onMessage.addListener((message: { type?: string }, sender) => {
   if (message.type === 'refresh-github') void refreshGithub();
+  if (message.type === 'capture' && sender.tab?.active) requestCapture(sender.tab.windowId, 0);
 });

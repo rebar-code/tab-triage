@@ -16,10 +16,21 @@
     onOpen: () => void;
     onClose: () => void;
     onRename: (name: string) => void;
+    onHover: (row: HTMLElement | null) => void;
   }
 
-  let { item, selected, selecting, now, windowNumber, onToggle, onOpen, onClose, onRename }: Props =
-    $props();
+  let {
+    item,
+    selected,
+    selecting,
+    now,
+    windowNumber,
+    onToggle,
+    onOpen,
+    onClose,
+    onRename,
+    onHover,
+  }: Props = $props();
 
   let renaming = $state(false);
 
@@ -56,6 +67,9 @@
   class:discarded={item.discarded}
   data-testid="tab-row"
   data-tab-id={item.id}
+  role="listitem"
+  onmouseenter={(e) => onHover(e.currentTarget)}
+  onmouseleave={() => onHover(null)}
 >
   <span class="check">
     {#if item.pinned}
