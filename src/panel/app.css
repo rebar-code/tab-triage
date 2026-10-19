@@ -1,0 +1,96 @@
+:root {
+  --bg: #ffffff;
+  --bg-hover: #f3f4f6;
+  --bg-selected: #e8f0fe;
+  --bg-soft: #f8f9fa;
+  --fg: #1f2328;
+  --fg-muted: #656d76;
+  --border: #e5e7eb;
+  --accent: #0969da;
+  --open: #1a7f37;
+  --draft: #6e7781;
+  --merged: #8250df;
+  --merged-bg: #f5f0ff;
+  --closed: #cf222e;
+  --danger: #cf222e;
+  color-scheme: light dark;
+  font:
+    13px/1.4 system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1d21;
+    --bg-hover: #262a30;
+    --bg-selected: #1d2f4d;
+    --bg-soft: #22252a;
+    --fg: #e6e8eb;
+    --fg-muted: #9198a1;
+    --border: #30363d;
+    --accent: #4493f8;
+    --open: #3fb950;
+    --draft: #9198a1;
+    --merged: #ab7df8;
+    --merged-bg: #2a2040;
+    --closed: #f85149;
+    --danger: #f85149;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+.chip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.chip-button:hover {
+  background: var(--bg-hover);
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: var(--fg-muted);
+}
+
+.icon-button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.icon-button.danger:hover {
+  color: var(--danger);
+}

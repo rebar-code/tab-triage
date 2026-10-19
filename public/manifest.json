@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Triage",
+  "version": "0.1.0",
+  "description": "Group, sort and bulk-close tabs. Knows when your PRs merged.",
+  "minimum_chrome_version": "121",
+  "permissions": ["tabs", "storage", "sidePanel", "alarms", "favicon"],
+  "host_permissions": ["https://github.com/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "action": { "default_title": "Tab Triage" },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+T" },
+      "description": "Open Tab Triage"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["content/github.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
