@@ -209,8 +209,8 @@
                 disabled={tabs.length === 0}
                 aria-label="Select group"
                 onclick={(e) => {
-                  e.preventDefault();
                   toggleGroup(group);
+                  e.currentTarget.checked = allSelected;
                 }}
               />
             </span>

@@ -85,3 +85,33 @@ test('trash closes one tab and pinned tabs cannot be selected', async ({ context
   await rows.nth(1).getByTitle('Close tab').click();
   await expect(rows).toHaveCount(1);
 });
+
+test('checkboxes show their checked state', async ({ context, panel }) => {
+  await openTabs(context, ['https://b.example.net/1', 'https://b.example.net/2']);
+  const rows = panel.locator('[data-group="example.net"]').getByTestId('tab-row');
+  const boxes = rows.getByRole('checkbox');
+  await expect(boxes).toHaveCount(2);
+
+  await rows.first().hover();
+  await boxes.first().click();
+  await expect(boxes.first()).toBeChecked();
+  await boxes.nth(1).click();
+  await expect(boxes.nth(1)).toBeChecked();
+  await boxes.first().click();
+  await expect(boxes.first()).not.toBeChecked();
+  await expect(boxes.nth(1)).toBeChecked();
+
+  await panel.keyboard.press('Escape');
+  await expect(boxes.nth(1)).not.toBeChecked();
+
+  const all = panel.locator('[data-group="example.net"]').getByRole('checkbox', {
+    name: 'Select group',
+  });
+  await all.click();
+  await expect(all).toBeChecked();
+  await expect(boxes.first()).toBeChecked();
+  await expect(boxes.nth(1)).toBeChecked();
+  await all.click();
+  await expect(all).not.toBeChecked();
+  await expect(boxes.first()).not.toBeChecked();
+});

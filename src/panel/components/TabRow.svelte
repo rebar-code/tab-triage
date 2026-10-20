@@ -69,8 +69,10 @@
         disabled={locked}
         aria-label="Select tab"
         onclick={(e) => {
-          e.preventDefault();
+          // No preventDefault: Chrome reverts a cancelled click after Svelte has
+          // already set `checked`, so the box never showed the selection.
           onToggle(e);
+          e.currentTarget.checked = selected;
         }}
       />
     {/if}
