@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     BookmarkPlus,
-    ChevronRight,
+    ChevronDown,
     Clock,
     Copy,
     GitMerge,
@@ -215,14 +215,14 @@
               />
             </span>
             <button class="group-title" onclick={() => toggleCollapse(group.key)}>
-              <span class="chevron" class:open={!collapsed.has(group.key)}>
-                <ChevronRight size={13} />
-              </span>
               {#if mode === 'domain' && group.tabs[0]}
                 <img src={faviconUrl(group.tabs[0].url)} alt="" width="14" height="14" />
               {/if}
               <span class="name">{group.label}</span>
               <span class="n">{group.tabs.length}</span>
+              <span class="chevron" class:collapsed={collapsed.has(group.key)}>
+                <ChevronDown size={13} />
+              </span>
             </button>
             {#if tabs.length}
               <button
@@ -412,8 +412,8 @@
     transition: transform 0.1s;
   }
 
-  .chevron.open {
-    transform: rotate(90deg);
+  .chevron.collapsed {
+    transform: rotate(-90deg);
   }
 
   .n {

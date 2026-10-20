@@ -123,7 +123,7 @@
     align-items: center;
     gap: 6px;
     height: 28px;
-    padding: 0 6px 0 10px;
+    padding: 0 6px 0 26px;
   }
 
   .row:hover {
