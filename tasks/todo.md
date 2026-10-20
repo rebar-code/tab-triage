@@ -25,11 +25,5 @@ Execution: inline. Milestones 1–2 set the data shape every reader uses; reader
 
 ## v2
 
-Vercel deployment state.
+Vercel deployment state. 
 Tokens (GitHub/Vercel/Supabase APIs), state for all tabs, failing checks, review requested, "By project" grouping, Chrome tab-strip groups.
-
-# Hover preview
-
-- [x] Worker screenshots the visible tab on switch, load, focus, scroll end and click (`<all_urls>` needed for captureVisibleTab)
-- [x] Stored in IndexedDB by URL, 720px JPEG; deleted when the tab closes, pruned when not open
-- [x] Panel holds object URLs in memory; card shows after 120ms, then switches rows at once

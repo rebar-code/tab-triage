@@ -10,7 +10,6 @@ pnpm build
 ```
 
 Open `chrome://extensions`, turn on Developer mode, click **Load unpacked**, pick `dist/`.
-Chrome asks for access to all sites: the hover preview screenshots the visible tab.
 Open with the toolbar icon or `Alt+Shift+T` (change it at `chrome://extensions/shortcuts`).
 
 ## Develop

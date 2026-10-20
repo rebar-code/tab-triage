@@ -19,8 +19,6 @@
   import { rangeIds } from '../lib/selection';
   import { writeSupabaseName } from '../lib/storage';
   import type { TabItem } from '../lib/types';
-  import { normalizeUrl } from '../lib/url';
-  import PreviewCard from './components/PreviewCard.svelte';
   import ClosedView from './components/ClosedView.svelte';
   import SavedView from './components/SavedView.svelte';
   import SettingsView from './components/SettingsView.svelte';
@@ -37,8 +35,6 @@
   let toast = $state<{ text: string; undo: boolean } | null>(null);
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   let search: HTMLInputElement | undefined = $state();
-  let hover = $state<{ id: number; top: number; bottom: number } | null>(null);
-  let hoverTimer: ReturnType<typeof setTimeout> | undefined;
   const selected = new SvelteSet<number>();
   const collapsed = new SvelteSet<string>();
 
@@ -55,26 +51,6 @@
   );
   const duplicates = $derived(store.items.filter((t) => t.duplicate && !isProtected(t)));
   const closable = (tabs: TabItem[]): TabItem[] => tabs.filter((t) => !isProtected(t));
-  const hoverItem = $derived(hover && store.items.find((t) => t.id === hover?.id));
-
-  // First card waits a beat so sweeping the mouse across the list stays quiet;
-  // once a card is up, moving between rows switches it at once.
-  function onHover(item: TabItem, row: HTMLElement | null): void {
-    clearTimeout(hoverTimer);
-    if (!row) {
-      hoverTimer = setTimeout(() => (hover = null), 60);
-      return;
-    }
-    const { top, bottom } = row.getBoundingClientRect();
-    const next = { id: item.id, top, bottom };
-    if (hover) hover = next;
-    else hoverTimer = setTimeout(() => (hover = next), 120);
-  }
-
-  function hideHover(): void {
-    clearTimeout(hoverTimer);
-    hover = null;
-  }
 
   function showToast(text: string, undo: boolean): void {
     clearTimeout(toastTimer);
@@ -156,7 +132,7 @@
   }
 </script>
 
-<svelte:window onkeydown={onKeydown} onmousedown={hideHover} />
+<svelte:window onkeydown={onKeydown} />
 
 <div class="shell">
   {#if view === 'tabs'}
@@ -219,7 +195,7 @@
     </header>
   {/if}
 
-  <main onscroll={hideHover}>
+  <main>
     {#if view === 'tabs'}
       {#each groups as group (group.key)}
         {@const tabs = closable(group.tabs)}
@@ -257,22 +233,19 @@
             {/if}
           </div>
           {#if !collapsed.has(group.key)}
-            <div role="list">
-              {#each group.tabs as item (item.id)}
-                <TabRow
-                  {item}
-                  selected={selected.has(item.id)}
-                  selecting={selectedItems.length > 0}
-                  now={store.now}
-                  windowNumber={store.windowNumbers.get(item.windowId)}
-                  onToggle={(e) => toggle(item, e)}
-                  onOpen={() => focusTab(item)}
-                  onClose={() => close([item])}
-                  onRename={(name) => rename(item, name)}
-                  onHover={(row) => onHover(item, row)}
-                />
-              {/each}
-            </div>
+            {#each group.tabs as item (item.id)}
+              <TabRow
+                {item}
+                selected={selected.has(item.id)}
+                selecting={selectedItems.length > 0}
+                now={store.now}
+                windowNumber={store.windowNumbers.get(item.windowId)}
+                onToggle={(e) => toggle(item, e)}
+                onOpen={() => focusTab(item)}
+                onClose={() => close([item])}
+                onRename={(name) => rename(item, name)}
+              />
+            {/each}
           {/if}
         </section>
       {:else}
@@ -286,15 +259,6 @@
       <SettingsView rules={store.snap.rules} />
     {/if}
   </main>
-
-  {#if view === 'tabs' && hover && hoverItem}
-    <PreviewCard
-      item={hoverItem}
-      image={store.previews.get(normalizeUrl(hoverItem.url))}
-      row={hover}
-      now={store.now}
-    />
-  {/if}
 
   {#if toast}
     <div class="toast" role="status">
