@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { matchesStatic, newFilter, normalizeSite, textMatches } from './filters';
+import {
+  matchesStatic,
+  newFilter,
+  pageSuggestions,
+  siteMatches,
+  siteOrigins,
+  textMatches,
+} from './filters';
 import { formatAge, groupTabs } from './group';
 import { toItems, learnedSupabaseNames, type RawTab } from './items';
 import { createPrewarm, needsLoad, type Prewarm, type TabState } from './prewarm';
@@ -244,10 +251,42 @@ describe('quick filters', () => {
     expect(textMatches('Todo', 'regex', '(')).toBe(false);
   });
 
-  it('turns what the user typed into a root domain', () => {
-    expect(normalizeSite('https://app.Linear.app/x')).toBe('linear.app');
-    expect(normalizeSite(' github.com ')).toBe('github.com');
-    expect(normalizeSite('')).toBe('');
+  it('matches the site as a regex on the host name', () => {
+    expect(siteMatches('https://app.linear.app/x', 'linear.app')).toBe(true);
+    expect(siteMatches('https://app.linear.app/x', '^linear\\.app$')).toBe(false);
+    expect(siteMatches('https://LINEAR.app/x', '^linear\\.app$')).toBe(true);
+    expect(siteMatches('https://a.com/x', '(')).toBe(false);
+  });
+
+  it('suggests exact values from the current page', () => {
+    const s = pageSuggestions('https://app.examplewindows.com/calendar?w=1', 'Calendar | EXW');
+    expect(s.site.map((x) => x.value)).toEqual([
+      '^app\\.examplewindows\\.com$',
+      '(^|\\.)examplewindows\\.com$',
+    ]);
+    expect(siteMatches('https://app.examplewindows.com/', s.site[0]!.value)).toBe(true);
+    expect(siteMatches('https://evil-examplewindows.com/', s.site[1]!.value)).toBe(false);
+    expect(s.url).toEqual([{ label: '/calendar', value: '/calendar' }]);
+    expect(s.title).toEqual([{ label: 'Calendar | EXW', value: 'Calendar | EXW' }]);
+    expect(pageSuggestions('chrome://newtab/', 'New Tab').site).toEqual([]);
+  });
+
+  it('asks access for the hosts of the open tabs the site matches', () => {
+    const tabs = items([
+      tab('https://app.linear.app/1'),
+      tab('https://app.linear.app/2'),
+      tab('https://linear.app/x'),
+      tab('https://github.com/x'),
+    ]);
+    expect(siteOrigins(newFilter({ domain: 'linear\\.app$' }), tabs)).toEqual([
+      'https://app.linear.app/*',
+      'https://linear.app/*',
+    ]);
+    expect(siteOrigins(newFilter(), tabs)).toEqual(['https://*/*']);
+    expect(siteOrigins(newFilter({ domain: '^example\\.com$' }), tabs)).toEqual([
+      'https://example.com/*',
+    ]);
+    expect(siteOrigins(newFilter({ domain: '(^|\\.)x\\.com$' }), tabs)).toEqual([]);
   });
 });
 

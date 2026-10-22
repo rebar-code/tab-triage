@@ -383,3 +383,34 @@ test('element filters re-check pages that change without a reload', async ({ con
     panel.locator('[data-testid="filter-item"][data-filter="Status done"]'),
   ).toContainText('3');
 });
+
+test('a new filter offers the current page as one-click values', async ({ context, panel }) => {
+  await openTabs(context, ['https://github.com/tab-triage-status/Other']);
+  const page = await context.newPage();
+  await page.goto('https://github.com/tab-triage-status/Done');
+
+  await panel.getByTitle('Filters').click();
+  await panel.getByRole('button', { name: 'Filter', exact: true }).click();
+  const editor = panel.getByTestId('filter-editor').last();
+
+  await editor.getByTitle('^github\\.com$').click();
+  await expect(editor.getByLabel('Site')).toHaveValue('^github\\.com$');
+  await expect(editor.getByTitle('^github\\.com$')).toHaveCount(0);
+  await editor.getByRole('button', { name: '/tab-triage-status/Done' }).click();
+  await expect(editor.getByLabel('URL contains')).toHaveValue('/tab-triage-status/Done');
+  await editor.getByRole('button', { name: 'Status Done' }).click();
+  await expect(editor.getByLabel('Title contains')).toHaveValue('Status Done');
+
+  await editor.getByLabel('Site').fill('(');
+  await editor.getByLabel('Site').blur();
+  await expect(editor.getByLabel('Site')).toHaveAttribute('aria-invalid', 'true');
+  await editor.getByLabel('Site').fill('github');
+  await editor.getByLabel('Site').blur();
+  await panel.screenshot({ path: 'test-results/filter-suggestions.png' });
+
+  await panel.getByTitle('Close').click();
+  await panel.getByTitle('Filters').click();
+  await expect(
+    panel.locator('[data-testid="filter-item"][data-filter="New filter"]'),
+  ).toContainText('1');
+});

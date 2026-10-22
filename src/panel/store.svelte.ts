@@ -1,4 +1,4 @@
-import { accessOrigins, matchesStatic, needsPage } from '../lib/filters';
+import { matchesStatic, needsPage, siteOrigins } from '../lib/filters';
 import { learnedSupabaseNames, toItems, type RawTab } from '../lib/items';
 import { pageMatchIds } from '../lib/page-check';
 import {
@@ -33,6 +33,13 @@ class PanelStore {
   );
 
   /** 1-based window numbers, in Chrome's window order. Empty when there is one window. */
+  #windowId = $state<number | undefined>();
+
+  /** The page the user is looking at, in the window this panel belongs to. */
+  current: TabItem | undefined = $derived(
+    this.items.find((t) => t.active && t.windowId === this.#windowId),
+  );
+
   windowNumbers: Map<number, number> = $derived.by(() => {
     const ids = [...new Set(this.tabs.map((t) => t.windowId))];
     return ids.length > 1 ? new Map(ids.map((id, i) => [id, i + 1])) : new Map();
@@ -58,7 +65,12 @@ class PanelStore {
   #pageRun = 0;
 
   async start(): Promise<void> {
-    await Promise.all([this.#loadTabs(), this.#loadSnap(), this.#loadShortcut()]);
+    await Promise.all([
+      this.#loadTabs(),
+      this.#loadSnap(),
+      this.#loadShortcut(),
+      chrome.windows.getCurrent().then((w) => (this.#windowId = w.id)),
+    ]);
     void this.#checkPages();
     // The shortcut is changed on chrome://extensions/shortcuts; pick it up on return.
     window.addEventListener('focus', () => void this.#loadShortcut());
@@ -125,9 +137,11 @@ class PanelStore {
     const run = ++this.#pageRun;
     const checks = await Promise.all(
       this.snap.filters.filter(needsPage).map(async (f) => {
-        const access = await chrome.permissions.contains({ origins: accessOrigins(f.domain) });
         const tabs = this.items.filter((t) => matchesStatic(t, f, this.now));
-        return { id: f.id, access, ids: access ? await pageMatchIds(f, tabs) : null };
+        const origins = siteOrigins(f, tabs);
+        // Hosts without access just fail their check; the flag only drives "No access".
+        const access = origins.length === 0 || (await chrome.permissions.contains({ origins }));
+        return { id: f.id, access, ids: await pageMatchIds(f, tabs) };
       }),
     );
     // A newer check started while this one waited on the tabs.

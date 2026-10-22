@@ -1,6 +1,7 @@
+import { getDomain } from 'tldts';
 import { isProtected } from './rules';
 import type { QuickFilter, TabItem, TextOp } from './types';
-import { groupKey } from './url';
+import { isWebUrl } from './url';
 
 const DAY = 24 * 3_600_000;
 
@@ -47,7 +48,7 @@ export function needsPage(filter: QuickFilter): boolean {
 export function matchesStatic(tab: TabItem, filter: QuickFilter, now: number): boolean {
   // The tab you are on counts: a quick close is a deliberate click. Auto-close rules skip it.
   if (isProtected(tab)) return false;
-  if (filter.domain && tab.domain !== filter.domain) return false;
+  if (filter.domain && !siteMatches(tab.url, filter.domain)) return false;
   if (filter.urlContains && !tab.url.toLowerCase().includes(filter.urlContains.toLowerCase()))
     return false;
   if (filter.titleContains && !tab.title.toLowerCase().includes(filter.titleContains.toLowerCase()))
@@ -84,20 +85,61 @@ export function textMatches(value: string | null, op: TextOp, text: string): boo
   }
 }
 
-/** Root domain from what the user typed: `https://app.linear.app/x` → `linear.app`. */
-export function normalizeSite(input: string): string {
-  const s = input.trim().toLowerCase();
-  if (!s) return '';
-  const key = groupKey(s.includes('://') ? s : `https://${s}`);
-  return key === 'other' || key.endsWith(':') || key.endsWith('//') ? '' : key;
+/** Site is a regex on the host name, without case. `linear.app` also matches `app.linear.app`. */
+export function siteMatches(url: string, pattern: string): boolean {
+  try {
+    return new RegExp(pattern, 'i').test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
 }
 
-/** Host permissions to ask for: the site and its subdomains. */
-export function siteOrigins(domain: string): string[] {
-  return domain ? [`https://*.${domain}/*`] : ['https://*/*'];
+export function isValidRegex(pattern: string): boolean {
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-/** Origins that show the extension can read the site. `github.com` is granted without subdomains. */
-export function accessOrigins(domain: string): string[] {
-  return domain ? [`https://${domain}/*`] : ['https://*/*'];
+export function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export interface Suggestion {
+  label: string;
+  value: string;
+}
+
+export interface PageSuggestions {
+  site: Suggestion[];
+  url: Suggestion[];
+  title: Suggestion[];
+}
+
+/** One-click values from the page the user is on. Site values are exact regexes. */
+export function pageSuggestions(url: string, title: string): PageSuggestions {
+  if (!isWebUrl(url)) return { site: [], url: [], title: [] };
+  const u = new URL(url);
+  const root = getDomain(u.hostname) ?? u.hostname;
+  const site = [{ label: u.hostname, value: `^${escapeRegex(u.hostname)}$` }];
+  if (root !== u.hostname) site.push({ label: `*.${root}`, value: `(^|\\.)${escapeRegex(root)}$` });
+  return {
+    site,
+    url: u.pathname.length > 1 ? [{ label: u.pathname, value: u.pathname }] : [],
+    title: title ? [{ label: title, value: title }] : [],
+  };
+}
+
+/** Host permissions for the open tabs the filter's site matches; every site when it has none. */
+export function siteOrigins(filter: QuickFilter, tabs: TabItem[]): string[] {
+  if (!filter.domain) return ['https://*/*'];
+  const origins = tabs
+    .filter((t) => isWebUrl(t.url) && siteMatches(t.url, filter.domain))
+    .map((t) => `${new URL(t.url).origin}/*`);
+  // No open tab to learn hosts from: a plain host such as `^linear\.app$` still names one.
+  const plain = /^\^?[a-z0-9.\\-]+\$?$/i.test(filter.domain);
+  if (origins.length === 0 && plain) return [`https://${filter.domain.replace(/[\^$\\]/g, '')}/*`];
+  return [...new Set(origins)];
 }

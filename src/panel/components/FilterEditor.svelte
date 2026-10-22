@@ -1,11 +1,19 @@
 <script lang="ts">
-  import { Pin, Trash } from '@lucide/svelte';
-  import { NO_TEXT, TEXT_OPS, normalizeSite } from '../../lib/filters';
+  import { Pin, Plus, Trash } from '@lucide/svelte';
+  import {
+    NO_TEXT,
+    TEXT_OPS,
+    isValidRegex,
+    type PageSuggestions,
+    type Suggestion,
+  } from '../../lib/filters';
   import type { QuickFilter, TextOp } from '../../lib/types';
 
   interface Props {
     filter: QuickFilter;
     noAccess: boolean;
+    /** Values from the page the user is on; shown under empty fields. */
+    suggestions: PageSuggestions | null;
     focused: boolean;
     picking: boolean;
     /** Why Pick is off, or '' when it can run. */
@@ -20,6 +28,7 @@
   let {
     filter,
     noAccess,
+    suggestions,
     focused,
     picking,
     pickBlocked,
@@ -41,6 +50,16 @@
     node.querySelector('input')?.focus();
   }
 </script>
+
+{#snippet suggest(list: Suggestion[] | undefined, apply: (value: string) => void)}
+  {#if list?.length}
+    <span class="suggest">
+      {#each list as s (s.value)}
+        <button title={s.value} onclick={() => apply(s.value)}><Plus size={11} />{s.label}</button>
+      {/each}
+    </span>
+  {/if}
+{/snippet}
 
 <div
   class="filter"
@@ -72,14 +91,14 @@
   <input
     id="{id}-site"
     class="wide"
-    placeholder="any"
+    placeholder="any (regex)"
     value={filter.domain}
-    onchange={(e) => {
-      const domain = normalizeSite(value(e));
-      e.currentTarget.value = domain;
-      onChange({ domain });
-    }}
+    aria-invalid={!isValidRegex(filter.domain)}
+    onchange={(e) => onChange({ domain: value(e) })}
   />
+  {#if !filter.domain}
+    {@render suggest(suggestions?.site, (domain) => onChange({ domain }))}
+  {/if}
 
   <label for="{id}-url">URL contains</label>
   <input
@@ -88,6 +107,9 @@
     value={filter.urlContains}
     onchange={(e) => onChange({ urlContains: value(e) })}
   />
+  {#if !filter.urlContains}
+    {@render suggest(suggestions?.url, (urlContains) => onChange({ urlContains }))}
+  {/if}
 
   <label for="{id}-title">Title contains</label>
   <input
@@ -96,6 +118,9 @@
     value={filter.titleContains}
     onchange={(e) => onChange({ titleContains: value(e) })}
   />
+  {#if !filter.titleContains}
+    {@render suggest(suggestions?.title, (titleContains) => onChange({ titleContains }))}
+  {/if}
 
   <label for="{id}-idle">Not viewed</label>
   <span class="days">
@@ -199,6 +224,38 @@
     background: var(--bg);
     font: inherit;
     color: inherit;
+  }
+
+  input[aria-invalid='true'] {
+    border-color: var(--danger);
+  }
+
+  .suggest {
+    grid-column: 2 / 4;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: -2px;
+  }
+
+  .suggest button {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    max-width: 100%;
+    padding: 0 6px;
+    border: 1px dashed var(--border);
+    border-radius: 999px;
+    color: var(--fg-muted);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .suggest button:hover {
+    color: var(--accent);
+    border-color: var(--accent);
   }
 
   input:disabled {
