@@ -1,10 +1,12 @@
 <script lang="ts">
   import { Plus } from '@lucide/svelte';
   import {
-    accessOrigins,
+    escapeRegex,
     matchesStatic,
     needsPage,
     newFilter,
+    pageSuggestions,
+    siteMatches,
     siteOrigins,
   } from '../../lib/filters';
   import type { QuickFilter, TabItem } from '../../lib/types';
@@ -18,21 +20,25 @@
   let added = $state<string | null>(null);
   let picking = $state<{ filterId: string; tabId: number } | null>(null);
 
+  const suggestions = $derived(
+    store.current ? pageSuggestions(store.current.url, store.current.title) : null,
+  );
+
   function save(next: QuickFilter[]): void {
     store.setFilters(next);
   }
 
-  async function requestAccess(domain: string): Promise<boolean> {
-    if (await chrome.permissions.contains({ origins: accessOrigins(domain) })) return true;
-    return chrome.permissions.request({ origins: siteOrigins(domain) }).catch(() => false);
+  async function requestAccess(filter: QuickFilter): Promise<boolean> {
+    const origins = siteOrigins(filter, store.items);
+    if (origins.length === 0 || (await chrome.permissions.contains({ origins }))) return true;
+    return chrome.permissions.request({ origins }).catch(() => false);
   }
 
   function change(filter: QuickFilter, patch: Partial<QuickFilter>): void {
     const next = { ...filter, ...patch };
     save(filters.map((f) => (f.id === filter.id ? next : f)));
     // Chrome only asks while the click or keystroke behind this change is fresh.
-    if (needsPage(next) && ('selector' in patch || 'domain' in patch))
-      void requestAccess(next.domain);
+    if (needsPage(next) && ('selector' in patch || 'domain' in patch)) void requestAccess(next);
   }
 
   function add(): void {
@@ -41,13 +47,16 @@
     added = filter.id;
   }
 
-  /** Tab to pick in: the active one on the site, else one the filter already matches. */
+  /** Tab to pick in: the page you are on if the site fits, else one the filter already matches. */
   function pickTarget(filter: QuickFilter): TabItem | undefined {
     const tabs = store.items.filter(
-      (t) => isWebUrl(t.url) && !t.discarded && (!filter.domain || t.domain === filter.domain),
+      (t) =>
+        isWebUrl(t.url) && !t.discarded && (!filter.domain || siteMatches(t.url, filter.domain)),
     );
     return (
-      tabs.find((t) => t.active) ?? tabs.find((t) => matchesStatic(t, filter, store.now)) ?? tabs[0]
+      tabs.find((t) => t.id === store.current?.id) ??
+      tabs.find((t) => matchesStatic(t, filter, store.now)) ??
+      tabs[0]
     );
   }
 
@@ -56,8 +65,8 @@
   async function pick(filter: QuickFilter): Promise<void> {
     const tab = pickTarget(filter);
     if (!tab) return;
-    const domain = filter.domain || tab.domain;
-    if (!(await requestAccess(domain))) return;
+    const domain = filter.domain || `^${escapeRegex(new URL(tab.url).hostname)}$`;
+    if (!(await requestAccess({ ...filter, domain }))) return;
     picking = { filterId: filter.id, tabId: tab.id };
     const result = await pickInTab(tab);
     if (picking?.filterId === filter.id) picking = null;
@@ -82,6 +91,7 @@
     <FilterEditor
       {filter}
       noAccess={store.noAccess.has(filter.id)}
+      suggestions={filter.id === (added ?? focusId) ? suggestions : null}
       focused={filter.id === (added ?? focusId)}
       picking={picking?.filterId === filter.id}
       pickBlocked={pickTarget(filter) ? '' : `No open tab on ${filter.domain || 'a website'}`}
@@ -89,7 +99,7 @@
       onRemove={() => save(filters.filter((f) => f.id !== filter.id))}
       onPick={() => void pick(filter)}
       onCancelPick={cancelPick}
-      onGrant={() => void requestAccess(filter.domain)}
+      onGrant={() => void requestAccess(filter)}
     />
   {/each}
   <button class="chip-button add" onclick={add}><Plus size={13} /> Filter</button>
