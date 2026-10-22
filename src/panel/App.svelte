@@ -58,7 +58,7 @@
   const counts = $derived(
     new Map([...store.filterTabs].map(([id, tabs]) => [id, tabs.length] as const)),
   );
-  const pinned = $derived(filters.filter((f) => f.pinned));
+  const pinned = $derived(filters.filter((f) => f.pinned && (counts.get(f.id) ?? 0) > 0));
   const hoverIds = $derived(
     hover ? new Set(store.filterTabs.get(hover.id)?.map((t) => t.id)) : null,
   );

@@ -321,7 +321,7 @@ test('hovering a discarded tab loads it in the background', async ({ context, pa
   expect((await panel.evaluate(() => chrome.tabs.getCurrent()))?.active).toBe(true);
 });
 
-test('pinning a filter in the menu shows it as a chip, even with no matches', async ({
+test('pinning a filter in the menu shows it as a chip only while it has matches', async ({
   context,
   panel,
 }) => {
@@ -344,10 +344,8 @@ test('pinning a filter in the menu shows it as a chip, even with no matches', as
   await panel.keyboard.press('Escape');
 
   await expect(panel.getByRole('group', { name: 'E tabs' })).toContainText('E tabs (2)');
-  // Pinned is a quick action the user chose; it stays visible at 0.
-  const empty = panel.getByRole('group', { name: 'Nothing open' });
-  await expect(empty).toContainText('Nothing open (0)');
-  await expect(empty.getByTitle('Close 0')).toBeDisabled();
+  // A pinned filter with no matching tabs hides its chip.
+  await expect(panel.getByRole('group', { name: 'Nothing open' })).toHaveCount(0);
 });
 
 test('element filters re-check pages that change without a reload', async ({ context, panel }) => {
@@ -362,7 +360,7 @@ test('element filters re-check pages that change without a reload', async ({ con
   await panel.bringToFront();
   await panel.evaluate((filters) => chrome.storage.local.set({ filters }), [statusFilter]);
   const chip = panel.getByRole('group', { name: 'Status done' });
-  await expect(chip).toContainText('Status done (0)');
+  await expect(chip).toHaveCount(0);
 
   // Switching to a tab re-checks it, and the tab you are on counts.
   await setStatus(a, 'Done');
