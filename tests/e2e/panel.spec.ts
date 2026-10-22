@@ -230,3 +230,63 @@ test('pick fills the selector and text from a clicked element', async ({ context
   await panel.getByTitle('Close').click();
   await expect(panel.getByRole('searchbox', { name: 'Search tabs' })).toBeVisible();
 });
+
+test('cmd-click on a title selects the tab instead of opening it', async ({ context, panel }) => {
+  await openTabs(context, ['https://c.example.net/1', 'https://c.example.net/2']);
+  await panel.bringToFront();
+  const rows = panel.locator('[data-group="example.net"]').getByTestId('tab-row');
+  await expect(rows).toHaveCount(2);
+
+  await rows
+    .first()
+    .getByRole('button')
+    .first()
+    .click({ modifiers: ['ControlOrMeta'] });
+  await expect(panel.getByText('1 selected')).toBeVisible();
+  await rows
+    .nth(1)
+    .getByRole('button')
+    .first()
+    .click({ modifiers: ['ControlOrMeta'] });
+  await expect(panel.getByText('2 selected')).toBeVisible();
+  await rows
+    .first()
+    .getByRole('button')
+    .first()
+    .click({ modifiers: ['ControlOrMeta'] });
+  await expect(panel.getByText('1 selected')).toBeVisible();
+  expect(await panel.evaluate(() => document.visibilityState)).toBe('visible');
+});
+
+test('cmd-z puts closed tabs back, wherever the focus is', async ({ context, panel }) => {
+  await openTabs(context, ['https://d.example.net/1', 'https://d.example.net/2']);
+  await panel.bringToFront();
+  await panel.reload();
+  const rows = panel.locator('[data-group="example.net"]').getByTestId('tab-row');
+  const search = panel.getByRole('searchbox', { name: 'Search tabs' });
+  await expect(rows).toHaveCount(2);
+
+  // Checkbox has focus: Delete closes, cmd-z reopens.
+  await rows.first().hover();
+  await rows.first().getByRole('checkbox').click();
+  await panel.keyboard.press('Delete');
+  await expect(rows).toHaveCount(1);
+  await panel.keyboard.press('ControlOrMeta+z');
+  await expect(rows).toHaveCount(2);
+
+  // Search has focus, as it does on open: cmd-z still reopens the last close.
+  await rows.first().hover();
+  await rows.first().getByTitle('Close tab').click();
+  await expect(rows).toHaveCount(1);
+  await search.focus();
+  await panel.keyboard.press('ControlOrMeta+z');
+  await expect(rows).toHaveCount(2);
+
+  // Typing after the close: cmd-z edits the search text instead.
+  await rows.first().hover();
+  await rows.first().getByTitle('Close tab').click();
+  await search.fill('');
+  await search.pressSequentially('d.ex');
+  await panel.keyboard.press('ControlOrMeta+z');
+  await expect(rows).toHaveCount(1);
+});

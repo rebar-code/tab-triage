@@ -45,6 +45,9 @@
   /** Filter whose tabs are listed alone, with the ids it matched when shown. */
   let preview = $state<{ id: string; ids: Set<number> } | null>(null);
   let editId = $state<string | null>(null);
+  // When the last close and the last search edit happened; Cmd-Z picks the later one.
+  let closedAt = 0;
+  let typedAt = 0;
   let toast = $state<{ text: string; undo: boolean } | null>(null);
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   let search: HTMLInputElement | undefined = $state();
@@ -84,6 +87,7 @@
 
   async function close(tabs: TabItem[]): Promise<void> {
     if (tabs.length === 0) return;
+    closedAt = Date.now();
     for (const t of tabs) selected.delete(t.id);
     await closeTabs(tabs);
     showToast(`Closed ${tabs.length} ${tabs.length === 1 ? 'tab' : 'tabs'}`, true);
@@ -133,7 +137,24 @@
 
   function setQuery(value: string): void {
     query = value;
+    typedAt = Date.now();
     localStorage.setItem('query', value);
+  }
+
+  /** Keys pressed here edit text. Checkboxes and buttons do not count. */
+  function isTextField(target: EventTarget | null): boolean {
+    if (target instanceof HTMLInputElement) return !['checkbox', 'radio'].includes(target.type);
+    return target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+  }
+
+  function isUndoKey(event: KeyboardEvent): boolean {
+    return event.key === 'z' && !event.shiftKey && (event.metaKey || event.ctrlKey);
+  }
+
+  /** Cmd-Z reopens the last close, unless the search text changed after it. */
+  function wantsUndo(event: KeyboardEvent, typing: boolean): boolean {
+    const searchIsStale = event.target === search && closedAt > typedAt;
+    return isUndoKey(event) && (!typing || searchIsStale);
   }
 
   function selectAll(node: HTMLInputElement): void {
@@ -209,14 +230,14 @@
   }
 
   function onKeydown(event: KeyboardEvent): void {
-    const typing = event.target instanceof HTMLInputElement;
+    const typing = isTextField(event.target);
     if (event.key === 'Escape') {
       onEscape(typing, event.target);
-    } else if (typing) {
-      return;
-    } else if (event.key === 'z' && (event.metaKey || event.ctrlKey)) {
+    } else if (wantsUndo(event, typing)) {
       event.preventDefault();
       void undo();
+    } else if (typing) {
+      return;
     } else if ((event.key === 'Delete' || event.key === 'Backspace') && selectedItems.length) {
       void close(closable(selectedItems));
     } else if (event.key === '/') {

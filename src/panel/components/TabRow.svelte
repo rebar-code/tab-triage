@@ -95,7 +95,8 @@
   <button
     class="title"
     title={item.url}
-    onclick={(e) => (e.shiftKey && !locked ? onToggle(e) : onOpen())}>{item.title}</button
+    onclick={(e) => ((e.shiftKey || e.metaKey || e.ctrlKey) && !locked ? onToggle(e) : onOpen())}
+    >{item.title}</button
   >
   <span class="meta">
     {#if item.label}
