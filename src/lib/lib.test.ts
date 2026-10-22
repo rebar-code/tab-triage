@@ -220,13 +220,13 @@ describe('quick filters', () => {
     expect(matchesStatic(fresh!, f, NOW)).toBe(false);
   });
 
-  it('never matches pinned, audible or active tabs', () => {
+  it('never matches pinned or audible tabs, but does match the active one', () => {
     const tabs = items([
       tab('https://a.com/1', { pinned: true }),
       tab('https://a.com/2', { audible: true }),
       tab('https://a.com/3', { active: true }),
     ]);
-    expect(tabs.map((t) => matchesStatic(t, newFilter(), NOW))).toEqual([false, false, false]);
+    expect(tabs.map((t) => matchesStatic(t, newFilter(), NOW))).toEqual([false, false, true]);
   });
 
   it('compares element text', () => {

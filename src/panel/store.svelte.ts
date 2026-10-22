@@ -1,8 +1,14 @@
 import { accessOrigins, matchesStatic, needsPage } from '../lib/filters';
 import { learnedSupabaseNames, toItems, type RawTab } from '../lib/items';
 import { pageMatchIds } from '../lib/page-check';
-import { emptySnapshot, loadSnapshot, writeSupabaseName, type Snapshot } from '../lib/storage';
-import type { TabItem } from '../lib/types';
+import {
+  emptySnapshot,
+  loadSnapshot,
+  writeFilters,
+  writeSupabaseName,
+  type Snapshot,
+} from '../lib/storage';
+import type { QuickFilter, TabItem } from '../lib/types';
 
 const ownPages = chrome.runtime.getURL('');
 
@@ -63,9 +69,12 @@ class PanelStore {
     chrome.tabs.onCreated.addListener(onTabs);
     chrome.tabs.onRemoved.addListener(onTabs);
     chrome.tabs.onUpdated.addListener(onTabs);
+    // Apps such as Linear change the page without a load; a URL or title change, or
+    // switching to the tab, is when their element may have changed.
     chrome.tabs.onUpdated.addListener((_id, change) => {
-      if (change.status === 'complete') this.schedulePageCheck();
+      if (change.status === 'complete' || change.url || change.title) this.schedulePageCheck();
     });
+    chrome.tabs.onActivated.addListener(() => this.schedulePageCheck());
     chrome.permissions.onAdded.addListener(() => this.schedulePageCheck());
     chrome.permissions.onRemoved.addListener(() => this.schedulePageCheck());
     chrome.tabs.onMoved.addListener(onTabs);
@@ -98,6 +107,13 @@ class PanelStore {
   async #loadShortcut(): Promise<void> {
     const commands = await chrome.commands.getAll();
     this.shortcut = commands.find((c) => c.name === '_execute_action')?.shortcut ?? '';
+  }
+
+  /** Shows the new filters at once; the storage reload lags, so a quick second edit would undo the first. */
+  setFilters(filters: QuickFilter[]): void {
+    this.snap = { ...this.snap, filters };
+    this.schedulePageCheck();
+    void writeFilters(filters);
   }
 
   schedulePageCheck(): void {

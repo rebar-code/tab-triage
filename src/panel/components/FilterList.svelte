@@ -7,7 +7,6 @@
     newFilter,
     siteOrigins,
   } from '../../lib/filters';
-  import { writeFilters } from '../../lib/storage';
   import type { QuickFilter, TabItem } from '../../lib/types';
   import { isWebUrl } from '../../lib/url';
   import { pickInTab, stopPicking } from '../../lib/page-check';
@@ -20,7 +19,7 @@
   let picking = $state<{ filterId: string; tabId: number } | null>(null);
 
   function save(next: QuickFilter[]): void {
-    void writeFilters(next);
+    store.setFilters(next);
   }
 
   async function requestAccess(domain: string): Promise<boolean> {
