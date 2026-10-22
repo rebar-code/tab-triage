@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Copy, Pin, Trash, Volume2 } from '@lucide/svelte';
   import { formatAge } from '../../lib/group';
+  import { warmOnHover } from '../../lib/prewarm';
   import { isProtected } from '../../lib/rules';
   import type { TabItem } from '../../lib/types';
   import { faviconUrl } from '../favicon';
@@ -56,6 +57,7 @@
   class:discarded={item.discarded}
   data-testid="tab-row"
   data-tab-id={item.id}
+  {@attach warmOnHover(item.id)}
 >
   <span class="check">
     {#if item.pinned}

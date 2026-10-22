@@ -115,3 +115,33 @@ test('checkboxes show their checked state', async ({ context, panel }) => {
   await expect(all).not.toBeChecked();
   await expect(boxes.first()).not.toBeChecked();
 });
+
+test('hovering a discarded tab loads it in the background', async ({ context, panel }) => {
+  await openTabs(context, ['https://c.example.net/1', 'https://c.example.net/2']);
+  await panel.bringToFront();
+  const discard = (url: string): Promise<number> =>
+    panel.evaluate(async (url) => {
+      const [tab] = await chrome.tabs.query({ url });
+      return (await chrome.tabs.discard(tab?.id ?? -1))?.id ?? -1;
+    }, url);
+  const state = (id: number): Promise<chrome.tabs.Tab> =>
+    panel.evaluate((id) => chrome.tabs.get(id), id);
+  const row = (id: number) => panel.locator(`[data-tab-id="${id}"]`);
+  const away = panel.getByTitle('By domain');
+
+  // A pass over the row shorter than the hover delay loads nothing.
+  const quick = await discard('https://c.example.net/1');
+  await expect(row(quick)).toHaveClass(/discarded/);
+  await row(quick).hover();
+  await away.hover();
+  await panel.waitForTimeout(400);
+  expect((await state(quick)).discarded).toBe(true);
+
+  // Resting on the row loads the tab without activating it.
+  const slow = await discard('https://c.example.net/2');
+  await expect(row(slow)).toHaveClass(/discarded/);
+  await row(slow).hover();
+  await expect.poll(async () => (await state(slow)).discarded).toBe(false);
+  expect((await state(slow)).active).toBe(false);
+  expect((await panel.evaluate(() => chrome.tabs.getCurrent()))?.active).toBe(true);
+});
