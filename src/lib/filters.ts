@@ -43,9 +43,10 @@ export function needsPage(filter: QuickFilter): boolean {
   return filter.selector !== '';
 }
 
-/** Every condition except the page element. Never matches protected or active tabs. */
+/** Every condition except the page element. Never matches pinned or audible tabs. */
 export function matchesStatic(tab: TabItem, filter: QuickFilter, now: number): boolean {
-  if (isProtected(tab) || tab.active) return false;
+  // The tab you are on counts: a quick close is a deliberate click. Auto-close rules skip it.
+  if (isProtected(tab)) return false;
   if (filter.domain && tab.domain !== filter.domain) return false;
   if (filter.urlContains && !tab.url.toLowerCase().includes(filter.urlContains.toLowerCase()))
     return false;

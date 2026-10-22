@@ -35,6 +35,7 @@
   <button
     class="chip-button close"
     title="Close {count}"
+    disabled={count === 0}
     onclick={onClose}
     onmouseenter={() => onHover({ id: filter.id, kind: 'close' })}><Trash size={12} /></button
   >
@@ -51,6 +52,11 @@
   .split .chip-button {
     border: 0;
     border-radius: 0;
+  }
+
+  .split .close:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
 
   .split .close {

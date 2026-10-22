@@ -320,3 +320,66 @@ test('hovering a discarded tab loads it in the background', async ({ context, pa
   expect((await state(slow)).active).toBe(false);
   expect((await panel.evaluate(() => chrome.tabs.getCurrent()))?.active).toBe(true);
 });
+
+test('pinning a filter in the menu shows it as a chip, even with no matches', async ({
+  context,
+  panel,
+}) => {
+  await openTabs(context, ['https://e.example.net/1', 'https://e.example.net/2']);
+  await panel.bringToFront();
+  await panel.evaluate(
+    (filters) => chrome.storage.local.set({ filters }),
+    [
+      { ...statusFilter, id: 'e-tabs', name: 'E tabs', domain: 'example.net', selector: '' },
+      { ...statusFilter, id: 'none', name: 'Nothing open', domain: 'nowhere.test', selector: '' },
+    ].map((f) => ({ ...f, urlContains: '', pinned: false })),
+  );
+  await expect(panel.locator('[data-group="example.net"]').getByTestId('tab-row')).toHaveCount(2);
+
+  await panel.getByTitle('Filters').click();
+  const item = (name: string) =>
+    panel.locator(`[data-testid="filter-item"][data-filter="${name}"]`);
+  await item('E tabs').getByTitle('Pin as chip').click();
+  await item('Nothing open').getByTitle('Pin as chip').click();
+  await panel.keyboard.press('Escape');
+
+  await expect(panel.getByRole('group', { name: 'E tabs' })).toContainText('E tabs (2)');
+  // Pinned is a quick action the user chose; it stays visible at 0.
+  const empty = panel.getByRole('group', { name: 'Nothing open' });
+  await expect(empty).toContainText('Nothing open (0)');
+  await expect(empty.getByTitle('Close 0')).toBeDisabled();
+});
+
+test('element filters re-check pages that change without a reload', async ({ context, panel }) => {
+  const open = async (path: string) => {
+    const page = await context.newPage();
+    await page.goto(`https://github.com/tab-triage-status/${path}`);
+    return page;
+  };
+  const setStatus = (page: import('@playwright/test').Page, text: string) =>
+    page.evaluate((t) => (document.querySelector('#s')!.textContent = t), text);
+  const [a, b, c] = [await open('Pending'), await open('Pending'), await open('Pending')];
+  await panel.bringToFront();
+  await panel.evaluate((filters) => chrome.storage.local.set({ filters }), [statusFilter]);
+  const chip = panel.getByRole('group', { name: 'Status done' });
+  await expect(chip).toContainText('Status done (0)');
+
+  // Switching to a tab re-checks it, and the tab you are on counts.
+  await setStatus(a, 'Done');
+  await a.bringToFront();
+  await expect(chip).toContainText('Status done (1)');
+
+  // An in-app navigation (URL change, no load) re-checks.
+  await b.evaluate(() => history.pushState({}, '', '/tab-triage-status/moved'));
+  await setStatus(b, 'Done');
+  await b.evaluate(() => history.pushState({}, '', '/tab-triage-status/moved-again'));
+  await expect(chip).toContainText('Status done (2)');
+
+  // Opening the filter menu re-checks.
+  await panel.bringToFront();
+  await setStatus(c, 'Done');
+  await panel.getByTitle('Filters').click();
+  await expect(
+    panel.locator('[data-testid="filter-item"][data-filter="Status done"]'),
+  ).toContainText('3');
+});

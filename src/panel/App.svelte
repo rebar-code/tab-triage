@@ -20,7 +20,7 @@
   import { groupTabs, matchesQuery, type GroupMode, type TabGroup } from '../lib/group';
   import { isProtected } from '../lib/rules';
   import { rangeIds } from '../lib/selection';
-  import { writeFilters, writeSupabaseName } from '../lib/storage';
+  import { writeSupabaseName } from '../lib/storage';
   import type { TabItem } from '../lib/types';
   import ClosedView from './components/ClosedView.svelte';
   import FilterChip from './components/FilterChip.svelte';
@@ -58,7 +58,7 @@
   const counts = $derived(
     new Map([...store.filterTabs].map(([id, tabs]) => [id, tabs.length] as const)),
   );
-  const pinned = $derived(filters.filter((f) => f.pinned && (counts.get(f.id) ?? 0) > 0));
+  const pinned = $derived(filters.filter((f) => f.pinned));
   const hoverIds = $derived(
     hover ? new Set(store.filterTabs.get(hover.id)?.map((t) => t.id)) : null,
   );
@@ -162,6 +162,15 @@
     node.select();
   }
 
+  function toggleMenu(): void {
+    if (menuOpen) {
+      dismissMenu();
+    } else {
+      menuOpen = true;
+      store.schedulePageCheck();
+    }
+  }
+
   function dismissMenu(): void {
     menuOpen = false;
     hover = null;
@@ -205,12 +214,12 @@
   }
 
   function pinFilter(id: string): void {
-    void writeFilters(filters.map((f) => (f.id === id ? { ...f, pinned: !f.pinned } : f)));
+    store.setFilters(filters.map((f) => (f.id === id ? { ...f, pinned: !f.pinned } : f)));
   }
 
   function addFilter(): void {
     const filter = newFilter();
-    void writeFilters([...filters, filter]);
+    store.setFilters([...filters, filter]);
     editFilter(filter.id);
   }
 
@@ -258,8 +267,7 @@
         class:on={menuOpen}
         title="Filters"
         aria-expanded={menuOpen}
-        onclick={() => (menuOpen ? dismissMenu() : (menuOpen = true))}
-        ><ListFilter size={15} /></button
+        onclick={toggleMenu}><ListFilter size={15} /></button
       >
       <label class="search">
         <Search size={14} />
