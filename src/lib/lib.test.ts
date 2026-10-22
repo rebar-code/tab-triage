@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { matchesStatic, newFilter, normalizeSite, textMatches } from './filters';
 import { formatAge, groupTabs } from './group';
 import { toItems, learnedSupabaseNames, type RawTab } from './items';
+import { createPrewarm, needsLoad, type Prewarm, type TabState } from './prewarm';
 import { DEFAULT_RULES, dueRule } from './rules';
 import { rangeIds } from './selection';
 import { emptySnapshot } from './storage';
@@ -247,5 +248,63 @@ describe('quick filters', () => {
     expect(normalizeSite('https://app.Linear.app/x')).toBe('linear.app');
     expect(normalizeSite(' github.com ')).toBe('github.com');
     expect(normalizeSite('')).toBe('');
+  });
+});
+
+describe('prewarm', () => {
+  const idle: TabState = { active: false, discarded: false, status: 'complete' };
+
+  function setup(states: Record<number, TabState>): {
+    warm: Prewarm;
+    reload: ReturnType<typeof vi.fn>;
+  } {
+    const reload = vi.fn(async (id: number) => {
+      states[id] = { active: false, discarded: false, status: 'loading' };
+    });
+    return { warm: createPrewarm({ get: async (id) => states[id]!, reload }, 150), reload };
+  }
+
+  it('loads only discarded or unloaded background tabs', () => {
+    expect(needsLoad({ ...idle, discarded: true })).toBe(true);
+    expect(needsLoad({ ...idle, status: 'unloaded' })).toBe(true);
+    expect(needsLoad(idle)).toBe(false);
+    expect(needsLoad({ ...idle, active: true, discarded: true })).toBe(false);
+  });
+
+  it('waits for the hover delay and cancels on leave', async () => {
+    vi.useFakeTimers();
+    const { warm, reload } = setup({ 1: { ...idle, discarded: true } });
+    warm.enter(1);
+    await vi.advanceTimersByTimeAsync(100);
+    warm.leave();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(reload).not.toHaveBeenCalled();
+    warm.enter(1);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(reload).toHaveBeenCalledWith(1);
+    vi.useRealTimers();
+  });
+
+  it('skips loaded tabs and keeps one load in flight', async () => {
+    vi.useFakeTimers();
+    const states: Record<number, TabState> = {
+      1: { ...idle, discarded: true },
+      2: { ...idle, status: 'unloaded' },
+      3: idle,
+    };
+    const { warm, reload } = setup(states);
+    warm.enter(3);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(reload).not.toHaveBeenCalled();
+    warm.enter(1);
+    await vi.advanceTimersByTimeAsync(150);
+    warm.enter(2);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(reload.mock.calls).toEqual([[1]]);
+    states[1] = idle;
+    warm.enter(2);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(reload.mock.calls).toEqual([[1], [2]]);
+    vi.useRealTimers();
   });
 });
