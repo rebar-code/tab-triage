@@ -25,5 +25,19 @@ Execution: inline. Milestones 1–2 set the data shape every reader uses; reader
 
 ## v2
 
-Vercel deployment state. 
+Vercel deployment state.
 Tokens (GitHub/Vercel/Supabase APIs), state for all tabs, failing checks, review requested, "By project" grouping, Chrome tab-strip groups.
+
+## Quick filters (branch `feat/quick-filters`)
+
+Picked design: F (filter menu left of search + pinned split chips). Execution: inline; one shared `QuickFilter` type.
+
+- [ ] Shortcut row in Settings (`chrome.commands.getAll`, Change opens `chrome://extensions/shortcuts`)
+- [ ] Search box focused and its kept text selected on open
+- [ ] `QuickFilter` data + matching (`src/lib/filters.ts`): site, URL, title, not viewed, element + text op (exists, is missing, is, is not, contains, doesn't contain, starts with, regex)
+- [ ] Page check with `chrome.scripting` on loaded tabs; per-site optional host permission; "No access" state
+- [ ] Filter menu: pin, show (blue), close (red), edit; "+ Filter"; Esc / icon / outside click close it
+- [ ] Pinned filters as split chips: name shows, trash closes; right-click edits
+- [ ] Filters view with X; Settings section "Filters"
+- [ ] Element picker (was out of scope; added after the prototype review)
+- [ ] Unit + e2e tests, screenshots

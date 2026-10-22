@@ -12,14 +12,26 @@
     selecting: boolean;
     now: number;
     windowNumber?: number;
+    /** A hovered filter would show or close this tab. */
+    highlight?: 'show' | 'close' | null;
     onToggle: (event: MouseEvent) => void;
     onOpen: () => void;
     onClose: () => void;
     onRename: (name: string) => void;
   }
 
-  let { item, selected, selecting, now, windowNumber, onToggle, onOpen, onClose, onRename }: Props =
-    $props();
+  let {
+    item,
+    selected,
+    selecting,
+    now,
+    windowNumber,
+    highlight = null,
+    onToggle,
+    onOpen,
+    onClose,
+    onRename,
+  }: Props = $props();
 
   let renaming = $state(false);
 
@@ -54,6 +66,8 @@
   class:merged
   class:active={item.active}
   class:discarded={item.discarded}
+  class:hl-show={highlight === 'show'}
+  class:hl-close={highlight === 'close'}
   data-testid="tab-row"
   data-tab-id={item.id}
 >
@@ -140,6 +154,18 @@
 
   .row.merged:not(.selected) {
     background: var(--merged-bg);
+  }
+
+  .row.hl-show,
+  .row.merged.hl-show:not(.selected) {
+    background: var(--bg-selected);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .row.hl-close,
+  .row.merged.hl-close:not(.selected) {
+    background: var(--danger-bg);
+    box-shadow: inset 3px 0 0 var(--danger);
   }
 
   .check {

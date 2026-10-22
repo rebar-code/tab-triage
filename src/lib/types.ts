@@ -72,3 +72,24 @@ export interface Rules {
   idle: { on: boolean; days: number };
   domains: DomainRule[];
 }
+
+export type TextOp =
+  'exists' | 'missing' | 'is' | 'isNot' | 'contains' | 'notContains' | 'startsWith' | 'regex';
+
+/** One-click close filter. Every set condition must match. */
+export interface QuickFilter {
+  id: string;
+  name: string;
+  /** Root domain; '' = any site. */
+  domain: string;
+  urlContains: string;
+  titleContains: string;
+  /** 0 = no idle condition. */
+  idleDays: number;
+  /** CSS selector checked on the live page; '' = none. */
+  selector: string;
+  textOp: TextOp;
+  text: string;
+  /** Shown as a chip in the action bar. */
+  pinned: boolean;
+}

@@ -4,9 +4,11 @@ import type {
   GithubState,
   GithubStatus,
   ProjectName,
+  QuickFilter,
   Rules,
   SavedEntry,
 } from './types';
+import { DEFAULT_FILTERS } from './filters';
 import { DEFAULT_RULES } from './rules';
 
 // One key per URL / PR / project so concurrent writers never clobber a shared map.
@@ -16,6 +18,7 @@ export const SUPABASE = 'sb:';
 export const CLOSED = 'closed';
 export const SAVED = 'saved';
 export const RULES = 'rules';
+const FILTERS = 'filters';
 
 export interface Snapshot {
   opened: Record<string, number>;
@@ -24,6 +27,7 @@ export interface Snapshot {
   closed: ClosedEntry[];
   saved: SavedEntry[];
   rules: Rules;
+  filters: QuickFilter[];
 }
 
 export function emptySnapshot(): Snapshot {
@@ -34,6 +38,7 @@ export function emptySnapshot(): Snapshot {
     closed: [],
     saved: [],
     rules: structuredClone(DEFAULT_RULES),
+    filters: structuredClone(DEFAULT_FILTERS),
   };
 }
 
@@ -48,6 +53,7 @@ export function parseSnapshot(raw: Record<string, unknown>): Snapshot {
   snap.closed = (raw[CLOSED] as ClosedEntry[] | undefined) ?? [];
   snap.saved = (raw[SAVED] as SavedEntry[] | undefined) ?? [];
   snap.rules = { ...snap.rules, ...(raw[RULES] as Partial<Rules> | undefined) };
+  snap.filters = (raw[FILTERS] as QuickFilter[] | undefined) ?? snap.filters;
   return snap;
 }
 
@@ -75,4 +81,8 @@ export async function writeSupabaseName(ref: string, name: ProjectName | null): 
 
 export async function writeRules(rules: Rules): Promise<void> {
   await chrome.storage.local.set({ [RULES]: rules });
+}
+
+export async function writeFilters(filters: QuickFilter[]): Promise<void> {
+  await chrome.storage.local.set({ [FILTERS]: filters });
 }
