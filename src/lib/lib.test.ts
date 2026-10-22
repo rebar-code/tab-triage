@@ -15,6 +15,7 @@ import { rangeIds } from './selection';
 import { emptySnapshot } from './storage';
 import type { Rules } from './types';
 import { groupKey, normalizeUrl } from './url';
+import { createWindowFrame, type WindowFrame } from './window-frame';
 
 const NOW = new Date('2026-10-19T15:00:00').getTime();
 const HOUR = 3_600_000;
@@ -344,6 +345,55 @@ describe('prewarm', () => {
     warm.enter(2);
     await vi.advanceTimersByTimeAsync(150);
     expect(reload.mock.calls).toEqual([[1], [2]]);
+    vi.useRealTimers();
+  });
+});
+
+describe('window frame', () => {
+  function setup(): { frame: WindowFrame; calls: string[] } {
+    const calls: string[] = [];
+    const frame = createWindowFrame(
+      {
+        // Window 10 shows tab 1, window 20 shows tab 2.
+        activeTab: async (windowId) => windowId / 10,
+        show: async (tabId) => void calls.push(`show ${tabId}`),
+        hide: async (tabId) => void calls.push(`hide ${tabId}`),
+      },
+      150,
+    );
+    return { frame, calls };
+  }
+
+  it('frames the window after the hover delay and clears it on leave', async () => {
+    vi.useFakeTimers();
+    const { frame, calls } = setup();
+    frame.enter(10);
+    await vi.advanceTimersByTimeAsync(100);
+    frame.leave();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(calls).toEqual([]);
+    frame.enter(10);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(calls).toEqual(['show 1']);
+    frame.leave();
+    await vi.advanceTimersByTimeAsync(150);
+    expect(calls).toEqual(['show 1', 'hide 1']);
+    vi.useRealTimers();
+  });
+
+  it('keeps the frame between rows of one window and moves it to another window', async () => {
+    vi.useFakeTimers();
+    const { frame, calls } = setup();
+    frame.enter(10);
+    await vi.advanceTimersByTimeAsync(150);
+    frame.leave();
+    frame.enter(10);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(calls).toEqual(['show 1']);
+    frame.leave();
+    frame.enter(20);
+    await vi.advanceTimersByTimeAsync(150);
+    expect(calls).toEqual(['show 1', 'hide 1', 'show 2']);
     vi.useRealTimers();
   });
 });

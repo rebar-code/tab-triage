@@ -321,6 +321,24 @@ test('hovering a discarded tab loads it in the background', async ({ context, pa
   expect((await panel.evaluate(() => chrome.tabs.getCurrent()))?.active).toBe(true);
 });
 
+test('hovering a tab frames the window that shows it', async ({ context, panel }) => {
+  const opened = context.waitForEvent('page');
+  await panel.evaluate(() => chrome.windows.create({ url: 'about:blank' }));
+  const other = await opened;
+  // Navigate from Playwright so the route serves the page.
+  await other.goto('https://github.com/acme/app/pull/2');
+  await expect(panel.locator('[data-tab-id]', { hasText: 'PR 2' })).toHaveCount(1);
+  const id = await panel.evaluate(
+    async () => (await chrome.tabs.query({ url: 'https://github.com/acme/app/pull/2' }))[0]?.id,
+  );
+  const frame = other.locator('#tab-triage-window-frame');
+
+  await panel.locator(`[data-tab-id="${id}"]`).hover();
+  await expect(frame).toHaveCount(1);
+  await panel.getByTitle('By domain').hover();
+  await expect(frame).toHaveCount(0);
+});
+
 test('pinning a filter in the menu shows it as a chip only while it has matches', async ({
   context,
   panel,

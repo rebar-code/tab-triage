@@ -130,3 +130,17 @@ export function pickElement(): Promise<Picked | null> {
 export function cancelPick(): void {
   document.dispatchEvent(new Event('tab-triage-pick-cancel'));
 }
+
+/** Draws a frame inside the page edges, so the user can see which window shows it. */
+export function showWindowFrame(): void {
+  if (document.getElementById('tab-triage-window-frame')) return;
+  const frame = document.createElement('div');
+  frame.id = 'tab-triage-window-frame';
+  frame.style.cssText =
+    'position:fixed;inset:0;z-index:2147483647;pointer-events:none;box-shadow:inset 0 0 0 4px #0969da,inset 0 0 32px 6px rgb(9 105 218 / .5)';
+  document.documentElement.append(frame);
+}
+
+export function hideWindowFrame(): void {
+  document.getElementById('tab-triage-window-frame')?.remove();
+}

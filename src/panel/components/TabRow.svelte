@@ -4,6 +4,7 @@
   import { warmOnHover } from '../../lib/prewarm';
   import { isProtected } from '../../lib/rules';
   import type { TabItem } from '../../lib/types';
+  import { frameOnHover } from '../../lib/window-frame';
   import { faviconUrl } from '../favicon';
   import GithubBadge from './GithubBadge.svelte';
 
@@ -72,6 +73,7 @@
   data-testid="tab-row"
   data-tab-id={item.id}
   {@attach warmOnHover(item.id)}
+  {@attach windowNumber && frameOnHover(item.windowId)}
 >
   <span class="check">
     {#if item.pinned}
