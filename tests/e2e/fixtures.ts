@@ -7,6 +7,11 @@ const dist = path.resolve(import.meta.dirname, '../../dist');
 const prStatus: Record<string, string> = { '1': 'pullMerged', '2': 'pullOpened', '3': 'draft' };
 
 function pageFor(url: URL): string {
+  // Pages for element filters; github.com is already readable by the extension.
+  if (url.hostname === 'github.com' && url.pathname.startsWith('/tab-triage-status/')) {
+    const status = url.pathname.split('/').at(-1) ?? '';
+    return `<title>Status ${status}</title><p>Status <span id="s">${status}</span></p>`;
+  }
   if (url.hostname === 'github.com') {
     const n = url.pathname.split('/').at(-1) ?? '';
     const status = prStatus[n] ?? 'pullOpened';

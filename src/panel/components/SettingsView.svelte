@@ -1,9 +1,11 @@
 <script lang="ts">
   import { Plus, Trash } from '@lucide/svelte';
   import { writeRules } from '../../lib/storage';
-  import type { DomainRule, Rules } from '../../lib/types';
+  import type { DomainRule, QuickFilter, Rules } from '../../lib/types';
+  import FilterList from './FilterList.svelte';
 
-  let { rules }: { rules: Rules } = $props();
+  let { rules, filters, shortcut }: { rules: Rules; filters: QuickFilter[]; shortcut: string } =
+    $props();
 
   type AgeKey = 'mergedPr' | 'closedPr' | 'closedIssue';
   const ageRules: { key: AgeKey; label: string }[] = [
@@ -30,6 +32,24 @@
 </script>
 
 <div class="settings">
+  <div class="rule" data-testid="shortcut">
+    <span class="name label">Shortcut</span>
+    {#if shortcut}
+      <kbd>{shortcut}</kbd>
+    {:else}
+      <span class="unset">Not set</span>
+    {/if}
+    <button
+      class="chip-button"
+      onclick={() => void chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}
+    >
+      Change
+    </button>
+  </div>
+
+  <h2>Filters</h2>
+  <FilterList {filters} />
+
   <h2>Auto-close</h2>
 
   {#each ageRules as { key, label } (key)}
@@ -137,6 +157,25 @@
 
   .name {
     flex: 1;
+  }
+
+  .label {
+    font-weight: 600;
+  }
+
+  kbd {
+    font:
+      12px ui-monospace,
+      monospace;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--bg-soft);
+  }
+
+  .unset {
+    color: var(--fg-muted);
   }
 
   .domain {

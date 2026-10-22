@@ -13,6 +13,7 @@
   --merged-bg: #f5f0ff;
   --closed: #cf222e;
   --danger: #cf222e;
+  --danger-bg: #fff1f0;
   color-scheme: light dark;
   font:
     13px/1.4 system-ui,
@@ -36,6 +37,7 @@
     --merged-bg: #2a2040;
     --closed: #f85149;
     --danger: #f85149;
+    --danger-bg: #3a1d1f;
   }
 }
 

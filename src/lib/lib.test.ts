@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { matchesStatic, newFilter, normalizeSite, textMatches } from './filters';
 import { formatAge, groupTabs } from './group';
 import { toItems, learnedSupabaseNames, type RawTab } from './items';
 import { DEFAULT_RULES, dueRule } from './rules';
@@ -181,5 +182,70 @@ describe('selection and formatting', () => {
     expect(formatAge(3 * DAY)).toBe('3d');
     expect(formatAge(21 * DAY)).toBe('3w');
     expect(formatAge(90 * DAY)).toBe('3mo');
+  });
+});
+
+describe('quick filters', () => {
+  const items = (raw: RawTab[]) => toItems(raw, emptySnapshot(), NOW);
+
+  it('needs every set condition to match', () => {
+    const [a, b, c, d] = items([
+      tab('https://linear.app/rebar/issue/REB-1', {
+        title: 'REB-1 Fix',
+        lastAccessed: NOW - 3 * DAY,
+      }),
+      tab('https://linear.app/rebar/issue/REB-2', { title: 'REB-2 Fix', lastAccessed: NOW - HOUR }),
+      tab('https://github.com/rebar/issue/1', { title: 'Fix', lastAccessed: NOW - 3 * DAY }),
+      tab('https://app.linear.app/rebar/view', { title: 'View', lastAccessed: NOW - 3 * DAY }),
+    ]);
+    const f = newFilter({
+      domain: 'linear.app',
+      urlContains: '/ISSUE/',
+      titleContains: 'fix',
+      idleDays: 2,
+    });
+    expect([a, b, c, d].map((t) => matchesStatic(t!, f, NOW))).toEqual([true, false, false, false]);
+    expect(matchesStatic(d!, newFilter({ domain: 'linear.app' }), NOW)).toBe(true);
+    expect(matchesStatic(c!, newFilter(), NOW)).toBe(true);
+  });
+
+  it('counts idle days from the last view', () => {
+    const [old, fresh] = items([
+      tab('https://a.com/1', { lastAccessed: NOW - 2 * DAY }),
+      tab('https://a.com/2', { lastAccessed: NOW - 2 * DAY + HOUR }),
+    ]);
+    const f = newFilter({ idleDays: 2 });
+    expect(matchesStatic(old!, f, NOW)).toBe(true);
+    expect(matchesStatic(fresh!, f, NOW)).toBe(false);
+  });
+
+  it('never matches pinned, audible or active tabs', () => {
+    const tabs = items([
+      tab('https://a.com/1', { pinned: true }),
+      tab('https://a.com/2', { audible: true }),
+      tab('https://a.com/3', { active: true }),
+    ]);
+    expect(tabs.map((t) => matchesStatic(t, newFilter(), NOW))).toEqual([false, false, false]);
+  });
+
+  it('compares element text', () => {
+    expect(textMatches(null, 'missing', '')).toBe(true);
+    expect(textMatches('Done', 'missing', '')).toBe(false);
+    expect(textMatches(null, 'exists', '')).toBe(false);
+    expect(textMatches('', 'exists', '')).toBe(true);
+    expect(textMatches(' Done ', 'is', 'done')).toBe(true);
+    expect(textMatches('Done', 'isNot', 'Done')).toBe(false);
+    expect(textMatches(null, 'isNot', 'Done')).toBe(false);
+    expect(textMatches('In Progress', 'contains', 'prog')).toBe(true);
+    expect(textMatches('In Progress', 'notContains', 'prog')).toBe(false);
+    expect(textMatches('Done today', 'startsWith', 'done')).toBe(true);
+    expect(textMatches('Todo', 'regex', '^(done|todo)$')).toBe(true);
+    expect(textMatches('Todo', 'regex', '(')).toBe(false);
+  });
+
+  it('turns what the user typed into a root domain', () => {
+    expect(normalizeSite('https://app.Linear.app/x')).toBe('linear.app');
+    expect(normalizeSite(' github.com ')).toBe('github.com');
+    expect(normalizeSite('')).toBe('');
   });
 });
