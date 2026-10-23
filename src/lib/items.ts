@@ -3,7 +3,7 @@ import { parseSupabaseRef, projectFromTitle } from './sites/supabase';
 import { vercelProject } from './sites/vercel';
 import type { Snapshot } from './storage';
 import type { TabItem } from './types';
-import { groupKey, normalizeUrl } from './url';
+import { groupHost, groupKey, normalizeUrl } from './url';
 
 /** The fields of chrome.tabs.Tab this module reads. */
 export type RawTab = Pick<
@@ -31,6 +31,7 @@ export function toItems(tabs: RawTab[], snap: Snapshot, now: number): TabItem[] 
       lastAccessed,
       openedAt: snap.opened[normalizeUrl(url)] ?? lastAccessed,
       domain: groupKey(url),
+      host: groupHost(url),
       duplicate: false,
     };
     const gh = parseGithubUrl(url);

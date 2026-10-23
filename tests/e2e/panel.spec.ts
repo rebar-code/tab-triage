@@ -23,8 +23,13 @@ test('groups tabs, closes merged PRs, bulk closes with shift-click, undoes, save
   const group = (key: string) => panel.locator(`[data-testid="group"][data-group="${key}"]`);
   const rows = (key: string) => group(key).getByTestId('tab-row');
 
-  // Root-domain grouping: docs.example.com sits under example.com.
-  await expect(rows('example.com')).toHaveCount(3);
+  // Host grouping: docs.example.com has its own group, right below example.com.
+  await expect(rows('example.com')).toHaveCount(2);
+  await expect(rows('docs.example.com')).toHaveCount(1);
+  const keys = await panel
+    .getByTestId('group')
+    .evaluateAll((groups) => groups.map((g) => g.getAttribute('data-group')));
+  expect(keys.indexOf('docs.example.com')).toBe(keys.indexOf('example.com') + 1);
   await expect(rows('github.com')).toHaveCount(3);
 
   // PR states from the page script.
@@ -48,17 +53,22 @@ test('groups tabs, closes merged PRs, bulk closes with shift-click, undoes, save
   await panel.getByRole('status').getByRole('button', { name: 'Undo' }).click();
   await expect(rows('github.com')).toHaveCount(3);
 
-  // Click the first checkbox, shift-click the third: all three selected.
-  const boxes = rows('example.com').getByRole('checkbox');
+  // Click the first checkbox, shift-click the third, across the two example.com groups.
+  const boxes = panel
+    .locator('[data-group="example.com"], [data-group="docs.example.com"]')
+    .getByTestId('tab-row')
+    .getByRole('checkbox');
   await rows('example.com').first().hover();
   await boxes.nth(0).click();
   await boxes.nth(2).click({ modifiers: ['Shift'] });
   await expect(panel.getByText('3 selected')).toBeVisible();
   await panel.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(group('example.com')).toHaveCount(0);
+  await expect(group('docs.example.com')).toHaveCount(0);
 
   await panel.keyboard.press('ControlOrMeta+z');
-  await expect(rows('example.com')).toHaveCount(3);
+  await expect(rows('example.com')).toHaveCount(2);
+  await expect(rows('docs.example.com')).toHaveCount(1);
 
   // Save for later closes the tab and lists it.
   await rows('example.org').first().hover();
@@ -76,7 +86,7 @@ test('trash closes one tab and pinned tabs cannot be selected', async ({ context
   )[0];
   await panel.evaluate((id) => chrome.tabs.update(id, { pinned: true }), pinned?.id ?? -1);
 
-  const rows = panel.locator('[data-group="example.net"]').getByTestId('tab-row');
+  const rows = panel.locator('[data-group="a.example.net"]').getByTestId('tab-row');
   await expect(rows).toHaveCount(2);
   await expect(rows.first().getByTitle('Pinned')).toBeVisible();
   await expect(rows.first().getByRole('checkbox')).toHaveCount(0);
@@ -88,7 +98,7 @@ test('trash closes one tab and pinned tabs cannot be selected', async ({ context
 
 test('checkboxes show their checked state', async ({ context, panel }) => {
   await openTabs(context, ['https://b.example.net/1', 'https://b.example.net/2']);
-  const rows = panel.locator('[data-group="example.net"]').getByTestId('tab-row');
+  const rows = panel.locator('[data-group="b.example.net"]').getByTestId('tab-row');
   const boxes = rows.getByRole('checkbox');
   await expect(boxes).toHaveCount(2);
 
@@ -104,7 +114,7 @@ test('checkboxes show their checked state', async ({ context, panel }) => {
   await panel.keyboard.press('Escape');
   await expect(boxes.nth(1)).not.toBeChecked();
 
-  const all = panel.locator('[data-group="example.net"]').getByRole('checkbox', {
+  const all = panel.locator('[data-group="b.example.net"]').getByRole('checkbox', {
     name: 'Select group',
   });
   await all.click();
@@ -241,7 +251,7 @@ test('pick fills the selector and text from a clicked element', async ({ context
 test('cmd-click on a title selects the tab instead of opening it', async ({ context, panel }) => {
   await openTabs(context, ['https://c.example.net/1', 'https://c.example.net/2']);
   await panel.bringToFront();
-  const rows = panel.locator('[data-group="example.net"]').getByTestId('tab-row');
+  const rows = panel.locator('[data-group="c.example.net"]').getByTestId('tab-row');
   await expect(rows).toHaveCount(2);
 
   await rows
@@ -269,7 +279,7 @@ test('cmd-z puts closed tabs back, wherever the focus is', async ({ context, pan
   await openTabs(context, ['https://d.example.net/1', 'https://d.example.net/2']);
   await panel.bringToFront();
   await panel.reload();
-  const rows = panel.locator('[data-group="example.net"]').getByTestId('tab-row');
+  const rows = panel.locator('[data-group="d.example.net"]').getByTestId('tab-row');
   const search = panel.getByRole('searchbox', { name: 'Search tabs' });
   await expect(rows).toHaveCount(2);
 
@@ -372,7 +382,7 @@ test('pinning a filter in the menu shows it as a chip only while it has matches'
       { ...statusFilter, id: 'none', name: 'Nothing open', domain: 'nowhere.test', selector: '' },
     ].map((f) => ({ ...f, urlContains: '', pinned: false })),
   );
-  await expect(panel.locator('[data-group="example.net"]').getByTestId('tab-row')).toHaveCount(2);
+  await expect(panel.locator('[data-group="e.example.net"]').getByTestId('tab-row')).toHaveCount(2);
 
   await panel.getByTitle('Filters').click();
   const item = (name: string) =>

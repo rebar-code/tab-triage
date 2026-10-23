@@ -28,6 +28,14 @@ export function groupKey(url: string): string {
   return domain || 'other';
 }
 
+/** Host a tab is grouped under. `www.rebar.is` → `rebar.is`; other subdomains keep their own group. */
+export function groupHost(url: string): string {
+  const domain = groupKey(url);
+  // Vercel previews and non-web pages stay grouped by their key.
+  if (domain === 'vercel.com' || !isWebUrl(url)) return domain;
+  return new URL(url).hostname.replace(/^www\./, '') || domain;
+}
+
 export function isWebUrl(url: string): boolean {
   return url.startsWith('http://') || url.startsWith('https://');
 }
