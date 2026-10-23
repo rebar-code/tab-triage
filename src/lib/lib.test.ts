@@ -354,8 +354,6 @@ describe('window frame', () => {
     const calls: string[] = [];
     const frame = createWindowFrame(
       {
-        // Window 10 shows tab 1, window 20 shows tab 2.
-        activeTab: async (windowId) => windowId / 10,
         show: async (tabId) => void calls.push(`show ${tabId}`),
         hide: async (tabId) => void calls.push(`hide ${tabId}`),
       },
@@ -364,15 +362,15 @@ describe('window frame', () => {
     return { frame, calls };
   }
 
-  it('frames the window after the hover delay and clears it on leave', async () => {
+  it('frames the tab after the hover delay and clears it on leave', async () => {
     vi.useFakeTimers();
     const { frame, calls } = setup();
-    frame.enter(10);
+    frame.enter(1);
     await vi.advanceTimersByTimeAsync(100);
     frame.leave();
     await vi.advanceTimersByTimeAsync(200);
     expect(calls).toEqual([]);
-    frame.enter(10);
+    frame.enter(1);
     await vi.advanceTimersByTimeAsync(150);
     expect(calls).toEqual(['show 1']);
     frame.leave();
@@ -381,17 +379,17 @@ describe('window frame', () => {
     vi.useRealTimers();
   });
 
-  it('keeps the frame between rows of one window and moves it to another window', async () => {
+  it('keeps the frame when its row re-renders and moves it to another tab', async () => {
     vi.useFakeTimers();
     const { frame, calls } = setup();
-    frame.enter(10);
+    frame.enter(1);
     await vi.advanceTimersByTimeAsync(150);
     frame.leave();
-    frame.enter(10);
+    frame.enter(1);
     await vi.advanceTimersByTimeAsync(300);
     expect(calls).toEqual(['show 1']);
     frame.leave();
-    frame.enter(20);
+    frame.enter(2);
     await vi.advanceTimersByTimeAsync(150);
     expect(calls).toEqual(['show 1', 'hide 1', 'show 2']);
     vi.useRealTimers();

@@ -73,7 +73,7 @@
   data-testid="tab-row"
   data-tab-id={item.id}
   {@attach warmOnHover(item.id)}
-  {@attach windowNumber && frameOnHover(item.windowId)}
+  {@attach windowNumber && item.active && frameOnHover(item.id)}
 >
   <span class="check">
     {#if item.pinned}
