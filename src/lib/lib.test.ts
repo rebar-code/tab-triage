@@ -14,7 +14,7 @@ import { DEFAULT_RULES, dueRule } from './rules';
 import { rangeIds } from './selection';
 import { emptySnapshot } from './storage';
 import type { Rules } from './types';
-import { groupKey, normalizeUrl } from './url';
+import { groupHost, groupKey, normalizeUrl } from './url';
 import { createWindowFrame, type WindowFrame } from './window-frame';
 
 const NOW = new Date('2026-10-19T15:00:00').getTime();
@@ -46,6 +46,15 @@ describe('url', () => {
     expect(groupKey('http://localhost:5173/')).toBe('localhost');
     expect(groupKey('chrome://extensions/')).toBe('chrome://');
     expect(groupKey('not a url')).toBe('other');
+  });
+
+  it('groups by host, with www and the root as one', () => {
+    expect(groupHost('https://docs.github.com/en')).toBe('docs.github.com');
+    expect(groupHost('https://www.rebar.is/')).toBe('rebar.is');
+    expect(groupHost('https://app-abc-team.vercel.app/')).toBe('vercel.com');
+    expect(groupHost('http://localhost:5173/')).toBe('localhost');
+    expect(groupHost('chrome://extensions/')).toBe('chrome://');
+    expect(groupHost('not a url')).toBe('other');
   });
 
   it('normalizes away hash and trailing slash', () => {
@@ -114,6 +123,29 @@ describe('groupTabs', () => {
     const groups = groupTabs(items, 'domain', NOW);
     expect(groups.map((g) => g.key)).toEqual(['a.com', 'b.com']);
     expect(groups[0]?.tabs.map((t) => t.url)).toEqual(['https://a.com/old', 'https://a.com/new']);
+  });
+
+  it('keeps subdomains under their root, root first, then subdomains A to Z', () => {
+    const items = toItems(
+      [
+        tab('https://b.com/1'),
+        tab('https://b.com/2'),
+        tab('https://billing.rebar.is/'),
+        tab('https://account.rebar.is/'),
+        tab('https://www.rebar.is/x'),
+        tab('https://rebar.is/y'),
+        tab('https://a.com/1'),
+      ],
+      emptySnapshot(),
+      NOW,
+    );
+    expect(groupTabs(items, 'domain', NOW).map((g) => g.key)).toEqual([
+      'rebar.is',
+      'account.rebar.is',
+      'billing.rebar.is',
+      'b.com',
+      'a.com',
+    ]);
   });
 
   it('groups by last viewed', () => {

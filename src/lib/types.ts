@@ -27,8 +27,10 @@ export interface TabItem {
   discarded: boolean;
   lastAccessed: number;
   openedAt: number;
-  /** Group key: root domain, or a scheme such as `chrome://`. */
+  /** Root domain, or a scheme such as `chrome://`. Orders groups and matches domain rules. */
   domain: string;
+  /** Group key: host without `www.`, or `domain` for non-web pages and Vercel previews. */
+  host: string;
   /** Project label for Supabase and Vercel tabs. */
   label?: string;
   /** Supabase project ref, when the label can be renamed. */

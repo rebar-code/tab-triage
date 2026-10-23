@@ -14,23 +14,38 @@ export function groupTabs(items: TabItem[], mode: GroupMode, now: number): TabGr
   return mode === 'domain' ? byDomain(items) : byRecent(items, now);
 }
 
+/** `account` for `account.rebar.is` under `rebar.is`; empty for the root itself. */
+function subdomain(host: string, domain: string): string {
+  return host === domain ? '' : host.slice(0, -domain.length - 1);
+}
+
+/** One group per host. Roots sort biggest first; under a root, the root itself, then subdomains A to Z. */
 function byDomain(items: TabItem[]): TabGroup[] {
   const groups = new Map<string, TabItem[]>();
+  const rootSize = new Map<string, number>();
   for (const item of items) {
-    const list = groups.get(item.domain);
+    const list = groups.get(item.host);
     if (list) list.push(item);
-    else groups.set(item.domain, [item]);
+    else groups.set(item.host, [item]);
+    rootSize.set(item.domain, (rootSize.get(item.domain) ?? 0) + 1);
   }
   return [...groups]
     .map(([key, tabs]) => ({
       key,
       label: key,
+      domain: tabs[0]?.domain ?? key,
       // Project label first so each Supabase / Vercel project sits together, then oldest first.
       tabs: tabs.sort(
         (a, b) => (a.label ?? '').localeCompare(b.label ?? '') || a.openedAt - b.openedAt,
       ),
     }))
-    .sort((a, b) => b.tabs.length - a.tabs.length || a.key.localeCompare(b.key));
+    .sort(
+      (a, b) =>
+        (rootSize.get(b.domain) ?? 0) - (rootSize.get(a.domain) ?? 0) ||
+        a.domain.localeCompare(b.domain) ||
+        subdomain(a.key, a.domain).localeCompare(subdomain(b.key, b.domain)),
+    )
+    .map(({ key, label, tabs }) => ({ key, label, tabs }));
 }
 
 const BUCKETS = ['Today', 'Yesterday', 'This week', 'This month', 'Older'] as const;
