@@ -369,6 +369,43 @@ test('hovering a tab on screen frames it, and a background tab frames nothing', 
   await expect(frame).toHaveCount(0);
 });
 
+test('resting on a row previews its tab in the page the main window shows', async ({
+  context,
+  panel,
+}) => {
+  await openTabs(context, [
+    'https://github.com/acme/app/pull/1',
+    'https://github.com/acme/app/pull/2',
+  ]);
+  const host = context.pages().find((p) => p.url().endsWith('/pull/1'));
+  if (!host) throw new Error('no host page');
+  await host.bringToFront();
+  const row = (title: string) => panel.locator('[data-tab-id]', { hasText: title });
+  const card = host.locator('#tab-triage-preview');
+  const stored = (): Promise<Record<string, unknown>> =>
+    panel.evaluate(() => chrome.storage.session.get(null));
+
+  // A quick pass over the row shows nothing.
+  await row('PR 2').hover();
+  await panel.getByTitle('By domain').hover();
+  await panel.waitForTimeout(700);
+  await expect(card).toHaveCount(0);
+
+  await row('PR 2').hover();
+  await expect(card).toHaveCount(1);
+  await expect(host.frameLocator('#tab-triage-preview').getByText('PR 2')).toBeVisible();
+
+  // The page on screen needs no preview of itself.
+  await row('PR 1').hover();
+  await expect(card).toHaveCount(0);
+
+  await row('PR 2').hover();
+  await expect(card).toHaveCount(1);
+  await panel.getByTitle('By domain').hover();
+  await expect(card).toHaveCount(0);
+  expect(await stored()).toEqual({});
+});
+
 test('pinning a filter in the menu shows it as a chip only while it has matches', async ({
   context,
   panel,

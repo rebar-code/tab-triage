@@ -144,3 +144,60 @@ export function showWindowFrame(): void {
 export function hideWindowFrame(): void {
   document.getElementById('tab-triage-window-frame')?.remove();
 }
+
+/** `chrome.storage.session` key that hands a `PageSummary` to the preview card. Memory only. */
+export const PREVIEW_KEY = 'preview';
+
+export interface PageSummary {
+  title: string;
+  url: string;
+  image: string | null;
+  description: string | null;
+  headings: string[];
+  text: string;
+}
+
+/** What a preview card shows of a page. Reads the live page; nothing is kept. */
+export function pageSummary(): PageSummary {
+  const clean = (s: string | null | undefined): string => (s ?? '').replace(/\s+/g, ' ').trim();
+  const meta = (selector: string): string =>
+    clean(document.querySelector<HTMLMetaElement>(selector)?.content);
+
+  function absolute(src: string): string | null {
+    try {
+      const url = new URL(src, location.href);
+      return /^https?:$/.test(url.protocol) ? url.href : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const image = meta('meta[property="og:image"]');
+  return {
+    title: clean(document.title),
+    url: location.href,
+    image: image ? absolute(image) : null,
+    description:
+      meta('meta[property="og:description"]') || meta('meta[name="description"]') || null,
+    headings: [...document.querySelectorAll('h1, h2')]
+      .map((h) => clean(h.textContent))
+      .filter(Boolean)
+      .slice(0, 3),
+    text: clean(document.body?.innerText).slice(0, 400),
+  };
+}
+
+/** Puts the preview card at the right edge of the page. The page cannot read into it. */
+export function showPreviewFrame(): void {
+  if (document.getElementById('tab-triage-preview')) return;
+  const frame = document.createElement('iframe');
+  frame.id = 'tab-triage-preview';
+  frame.src = chrome.runtime.getURL('preview.html');
+  frame.style.cssText =
+    'position:fixed;top:0;right:0;width:396px;height:75vh;border:0;z-index:2147483647;pointer-events:none;color-scheme:normal;background:transparent';
+  document.documentElement.append(frame);
+}
+
+export function hidePreviewFrame(): void {
+  document.getElementById('tab-triage-preview')?.remove();
+}

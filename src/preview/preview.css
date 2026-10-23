@@ -1,0 +1,100 @@
+/* No color-scheme here: one that differs from the host page's makes the iframe opaque. */
+:root {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --fg-muted: #656d76;
+  --border: #d0d7de;
+  font:
+    13px/1.4 system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1d21;
+    --fg: #e6e8eb;
+    --fg-muted: #9198a1;
+    --border: #30363d;
+  }
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  /* Chrome gives extension pages a 75% body font. */
+  font: inherit;
+}
+
+#card {
+  box-sizing: border-box;
+  max-height: calc(100% - 36px);
+  overflow: hidden;
+  margin: 12px 12px 24px 24px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+}
+
+#card[hidden],
+#card [hidden] {
+  display: none;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#favicon {
+  flex: none;
+}
+
+h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+p,
+ul {
+  margin: 8px 0 0;
+}
+
+#url {
+  margin-top: 2px;
+  color: var(--fg-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#image {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  margin-top: 8px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+ul {
+  padding-left: 18px;
+  font-weight: 600;
+}
+
+#text {
+  color: var(--fg-muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+}
