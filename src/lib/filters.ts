@@ -37,6 +37,7 @@ export function newFilter(patch: Partial<QuickFilter> = {}): QuickFilter {
 
 export const DEFAULT_FILTERS: QuickFilter[] = [
   newFilter({ id: 'not-viewed-2d', name: 'Not viewed 2d', idleDays: 2 }),
+  newFilter({ id: 'not-viewed-5d', name: 'Not viewed 5d', idleDays: 5 }),
 ];
 
 /** True when the filter also checks the live page. */

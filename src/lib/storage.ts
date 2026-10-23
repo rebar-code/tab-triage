@@ -19,6 +19,10 @@ export const CLOSED = 'closed';
 export const SAVED = 'saved';
 export const RULES = 'rules';
 const FILTERS = 'filters';
+/** Ids of the presets already offered, so a preset added later shows up once and a deleted one stays gone. */
+const OFFERED = 'filterDefaults';
+/** Presets of installs that saved filters before `OFFERED` existed. */
+const FIRST_OFFERED = ['not-viewed-2d'];
 
 export interface Snapshot {
   opened: Record<string, number>;
@@ -53,7 +57,14 @@ export function parseSnapshot(raw: Record<string, unknown>): Snapshot {
   snap.closed = (raw[CLOSED] as ClosedEntry[] | undefined) ?? [];
   snap.saved = (raw[SAVED] as SavedEntry[] | undefined) ?? [];
   snap.rules = { ...snap.rules, ...(raw[RULES] as Partial<Rules> | undefined) };
-  snap.filters = (raw[FILTERS] as QuickFilter[] | undefined) ?? snap.filters;
+  const filters = raw[FILTERS] as QuickFilter[] | undefined;
+  if (filters) {
+    const offered = new Set([
+      ...((raw[OFFERED] as string[] | undefined) ?? FIRST_OFFERED),
+      ...filters.map((f) => f.id),
+    ]);
+    snap.filters = [...filters, ...snap.filters.filter((f) => !offered.has(f.id))];
+  }
   return snap;
 }
 
@@ -84,5 +95,8 @@ export async function writeRules(rules: Rules): Promise<void> {
 }
 
 export async function writeFilters(filters: QuickFilter[]): Promise<void> {
-  await chrome.storage.local.set({ [FILTERS]: filters });
+  await chrome.storage.local.set({
+    [FILTERS]: filters,
+    [OFFERED]: DEFAULT_FILTERS.map((f) => f.id),
+  });
 }

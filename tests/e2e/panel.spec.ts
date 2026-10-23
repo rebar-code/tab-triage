@@ -406,6 +406,12 @@ test('resting on a row previews its tab in the page the main window shows', asyn
   expect(await stored()).toEqual({});
 });
 
+test('the filter menu starts with the not-viewed presets', async ({ panel }) => {
+  await panel.getByTitle('Filters').click();
+  await expect(panel.getByTestId('filter-item')).toHaveText([/Not viewed 2d/, /Not viewed 5d/]);
+  await panel.screenshot({ path: 'test-results/filter-presets.png' });
+});
+
 test('pinning a filter in the menu shows it as a chip only while it has matches', async ({
   context,
   panel,

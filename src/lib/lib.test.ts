@@ -13,7 +13,7 @@ import { createPrewarm, needsLoad, type Prewarm, type TabState } from './prewarm
 import { createPreview } from './preview';
 import { DEFAULT_RULES, dueRule } from './rules';
 import { rangeIds } from './selection';
-import { emptySnapshot } from './storage';
+import { emptySnapshot, parseSnapshot } from './storage';
 import type { Rules } from './types';
 import { groupHost, groupKey, normalizeUrl } from './url';
 import { createWindowFrame, type WindowFrame } from './window-frame';
@@ -229,6 +229,18 @@ describe('selection and formatting', () => {
 
 describe('quick filters', () => {
   const items = (raw: RawTab[]) => toItems(raw, emptySnapshot(), NOW);
+  const names = (raw: Record<string, unknown>) => parseSnapshot(raw).filters.map((f) => f.name);
+
+  it('preloads the not-viewed presets, and adds a new preset to saved filters once', () => {
+    expect(names({})).toEqual(['Not viewed 2d', 'Not viewed 5d']);
+    // Saved before presets were tracked, with the 2d preset deleted.
+    const mine = newFilter({ name: 'Mine' });
+    expect(names({ filters: [mine] })).toEqual(['Mine', 'Not viewed 5d']);
+    // A deleted preset stays deleted.
+    expect(names({ filters: [mine], filterDefaults: ['not-viewed-2d', 'not-viewed-5d'] })).toEqual([
+      'Mine',
+    ]);
+  });
 
   it('needs every set condition to match', () => {
     const [a, b, c, d] = items([
