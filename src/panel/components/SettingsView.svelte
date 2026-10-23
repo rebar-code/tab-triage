@@ -26,6 +26,15 @@
     return (event.currentTarget as HTMLInputElement).checked;
   }
 
+  // Page filters and the hover frame only reach sites the extension has access to.
+  const ALL_SITES = { origins: ['https://*/*', 'http://*/*'] };
+  let allSites = $state(false);
+  void chrome.permissions.contains(ALL_SITES).then((granted) => (allSites = granted));
+
+  async function allowAllSites(): Promise<void> {
+    allSites = await chrome.permissions.request(ALL_SITES).catch(() => false);
+  }
+
   function updateDomain(i: number, patch: Partial<DomainRule>): void {
     update({ domains: rules.domains.map((d, j) => (j === i ? { ...d, ...patch } : d)) });
   }
@@ -45,6 +54,15 @@
     >
       Change
     </button>
+  </div>
+
+  <div class="rule" data-testid="site-access">
+    <span class="name label">Site access</span>
+    {#if allSites}
+      <span class="unset">All sites</span>
+    {:else}
+      <button class="chip-button" onclick={allowAllSites}>Allow all sites</button>
+    {/if}
   </div>
 
   <h2>Filters</h2>
