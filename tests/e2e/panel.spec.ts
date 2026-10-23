@@ -321,19 +321,32 @@ test('hovering a discarded tab loads it in the background', async ({ context, pa
   expect((await panel.evaluate(() => chrome.tabs.getCurrent()))?.active).toBe(true);
 });
 
-test('hovering a tab frames the window that shows it', async ({ context, panel }) => {
+test('hovering a tab on screen frames it, and a background tab frames nothing', async ({
+  context,
+  panel,
+}) => {
   const opened = context.waitForEvent('page');
-  await panel.evaluate(() => chrome.windows.create({ url: 'about:blank' }));
+  const windowId = await panel.evaluate(
+    async () => (await chrome.windows.create({ url: 'about:blank' }))?.id ?? -1,
+  );
   const other = await opened;
   // Navigate from Playwright so the route serves the page.
   await other.goto('https://github.com/acme/app/pull/2');
-  await expect(panel.locator('[data-tab-id]', { hasText: 'PR 2' })).toHaveCount(1);
-  const id = await panel.evaluate(
-    async () => (await chrome.tabs.query({ url: 'https://github.com/acme/app/pull/2' }))[0]?.id,
+  const background = await panel.evaluate(
+    async (windowId) => (await chrome.tabs.create({ windowId, active: false })).id,
+    windowId,
   );
+  const visible = panel.locator('[data-tab-id]', { hasText: 'PR 2' });
+  const hidden = panel.locator(`[data-tab-id="${background}"]`);
+  await expect(visible).toHaveCount(1);
+  await expect(hidden).toHaveCount(1);
   const frame = other.locator('#tab-triage-window-frame');
 
-  await panel.locator(`[data-tab-id="${id}"]`).hover();
+  await hidden.hover();
+  await panel.waitForTimeout(500);
+  await expect(frame).toHaveCount(0);
+
+  await visible.hover();
   await expect(frame).toHaveCount(1);
   await panel.getByTitle('By domain').hover();
   await expect(frame).toHaveCount(0);
