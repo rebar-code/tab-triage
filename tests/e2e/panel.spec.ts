@@ -140,6 +140,13 @@ test('settings show the shortcut and a link to change it', async ({ panel }) => 
   await expect(row.getByRole('button', { name: 'Change' })).toBeVisible();
 });
 
+test('settings offer access to all sites until it is granted', async ({ panel }) => {
+  await panel.getByTitle('Settings').click();
+  await expect(
+    panel.getByTestId('site-access').getByRole('button', { name: 'Allow all sites' }),
+  ).toBeVisible();
+});
+
 const statusFilter = {
   id: 'status-done',
   name: 'Status done',
