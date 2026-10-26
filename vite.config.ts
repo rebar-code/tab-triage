@@ -7,7 +7,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    rollupOptions: { input: ['sidepanel.html', 'preview.html'] },
+    rollupOptions: { input: 'sidepanel.html' },
   },
   test: { include: ['src/**/*.test.ts'] },
 });

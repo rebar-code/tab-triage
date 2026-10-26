@@ -52,24 +52,19 @@ const frame = createWindowFrame({
   },
 });
 
-/** Row attachment: tells `hover` while the pointer is on the row of `tabId`. */
-export function onRowHover(hover: WindowFrame, tabId: number): Attachment<HTMLElement> {
+/** Row attachment: frames the tab's page while the pointer rests on the row. */
+export function frameOnHover(tabId: number): Attachment<HTMLElement> {
   return (node) => {
-    const enter = (): void => hover.enter(tabId);
+    const enter = (): void => frame.enter(tabId);
     node.addEventListener('mouseenter', enter);
-    node.addEventListener('mouseleave', hover.leave);
+    node.addEventListener('mouseleave', frame.leave);
     // Tab updates re-run this attachment under a resting pointer, with no new mouseenter.
     if (node.matches(':hover')) enter();
     return () => {
       node.removeEventListener('mouseenter', enter);
-      node.removeEventListener('mouseleave', hover.leave);
+      node.removeEventListener('mouseleave', frame.leave);
       // A row removed under the pointer (tab closed) never gets mouseleave.
-      if (node.matches(':hover')) hover.leave();
+      if (node.matches(':hover')) frame.leave();
     };
   };
-}
-
-/** Row attachment: frames the tab's page while the pointer rests on the row. */
-export function frameOnHover(tabId: number): Attachment<HTMLElement> {
-  return onRowHover(frame, tabId);
 }

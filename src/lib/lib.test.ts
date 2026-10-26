@@ -10,7 +10,6 @@ import {
 import { formatAge, groupTabs } from './group';
 import { toItems, learnedSupabaseNames, type RawTab } from './items';
 import { createPrewarm, needsLoad, type Prewarm, type TabState } from './prewarm';
-import { createPreview } from './preview';
 import { DEFAULT_RULES, dueRule } from './rules';
 import { rangeIds } from './selection';
 import { emptySnapshot, parseSnapshot } from './storage';
@@ -437,53 +436,6 @@ describe('window frame', () => {
     frame.enter(2);
     await vi.advanceTimersByTimeAsync(150);
     expect(calls).toEqual(['show 1', 'hide 1', 'show 2']);
-    vi.useRealTimers();
-  });
-});
-
-describe('preview', () => {
-  function setup(): { preview: WindowFrame; calls: string[] } {
-    const calls: string[] = [];
-    const preview = createPreview(
-      {
-        show: async (tabId) => void calls.push(`show ${tabId}`),
-        hide: async () => void calls.push('hide'),
-      },
-      400,
-    );
-    return { preview, calls };
-  }
-
-  it('shows the card after the hover delay and hides it on leave', async () => {
-    vi.useFakeTimers();
-    const { preview, calls } = setup();
-    preview.enter(1);
-    await vi.advanceTimersByTimeAsync(300);
-    preview.leave();
-    await vi.advanceTimersByTimeAsync(500);
-    expect(calls).toEqual([]);
-    preview.enter(1);
-    await vi.advanceTimersByTimeAsync(400);
-    expect(calls).toEqual(['show 1']);
-    preview.leave();
-    await vi.advanceTimersByTimeAsync(400);
-    expect(calls).toEqual(['show 1', 'hide']);
-    vi.useRealTimers();
-  });
-
-  it('keeps the card when its row re-renders and swaps it in place for another tab', async () => {
-    vi.useFakeTimers();
-    const { preview, calls } = setup();
-    preview.enter(1);
-    await vi.advanceTimersByTimeAsync(400);
-    preview.leave();
-    preview.enter(1);
-    await vi.advanceTimersByTimeAsync(800);
-    expect(calls).toEqual(['show 1']);
-    preview.leave();
-    preview.enter(2);
-    await vi.advanceTimersByTimeAsync(400);
-    expect(calls).toEqual(['show 1', 'show 2']);
     vi.useRealTimers();
   });
 });
