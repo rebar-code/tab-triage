@@ -2,7 +2,6 @@
   import { Copy, Pin, Trash, Volume2 } from '@lucide/svelte';
   import { formatAge } from '../../lib/group';
   import { warmOnHover } from '../../lib/prewarm';
-  import { previewOnHover } from '../../lib/preview';
   import { isProtected } from '../../lib/rules';
   import type { TabItem } from '../../lib/types';
   import { frameOnHover } from '../../lib/window-frame';
@@ -75,7 +74,6 @@
   data-tab-id={item.id}
   {@attach warmOnHover(item.id)}
   {@attach windowNumber && item.active && frameOnHover(item.id)}
-  {@attach previewOnHover(item.id)}
 >
   <span class="check">
     {#if item.pinned}
