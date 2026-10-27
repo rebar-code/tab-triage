@@ -96,6 +96,42 @@ test('trash closes one tab and pinned tabs cannot be selected', async ({ context
   await expect(rows).toHaveCount(1);
 });
 
+test('closing tabs keeps the group order, and the flat list is oldest first', async ({
+  context,
+  panel,
+}) => {
+  await openTabs(context, [
+    'https://f.example.org/1',
+    'https://f.example.org/2',
+    'https://f.example.org/3',
+    'https://g.example.edu/1',
+    'https://g.example.edu/2',
+  ]);
+  const keys = () =>
+    panel
+      .locator('[data-group="f.example.org"], [data-group="g.example.edu"]')
+      .evaluateAll((groups) => groups.map((g) => g.getAttribute('data-group')));
+  const rows = panel.locator('[data-group="f.example.org"]').getByTestId('tab-row');
+  await expect(rows).toHaveCount(3);
+  expect(await keys()).toEqual(['f.example.org', 'g.example.edu']);
+
+  for (const n of [2, 1]) {
+    await rows.nth(n).hover();
+    await rows.nth(n).getByTitle('Close tab').click();
+    await expect(rows).toHaveCount(n);
+  }
+  expect(await keys()).toEqual(['f.example.org', 'g.example.edu']);
+
+  await panel.getByTitle('All tabs, oldest first').click();
+  await expect(panel.getByRole('checkbox', { name: 'Select group' })).toHaveCount(0);
+  const urls = await panel
+    .getByTestId('tab-row')
+    .evaluateAll((all) => all.map((r) => r.textContent ?? ''));
+  const at = (host: string): number => urls.findIndex((u) => u.includes(host));
+  expect(at('f.example.org/1')).toBeLessThan(at('g.example.edu/1'));
+  expect(at('g.example.edu/1')).toBeLessThan(at('g.example.edu/2'));
+});
+
 test('checkboxes show their checked state', async ({ context, panel }) => {
   await openTabs(context, ['https://b.example.net/1', 'https://b.example.net/2']);
   const rows = panel.locator('[data-group="b.example.net"]').getByTestId('tab-row');

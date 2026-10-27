@@ -1,6 +1,6 @@
 import type { TabItem } from './types';
 
-export type GroupMode = 'domain' | 'recent';
+export type GroupMode = 'domain' | 'recent' | 'opened';
 
 export interface TabGroup {
   key: string;
@@ -11,7 +11,28 @@ export interface TabGroup {
 const DAY = 86_400_000;
 
 export function groupTabs(items: TabItem[], mode: GroupMode, now: number): TabGroup[] {
+  if (mode === 'opened') return byOpened(items);
   return mode === 'domain' ? byDomain(items) : byRecent(items, now);
+}
+
+/** `seen`, then the keys of `groups` it lacks, in their order. Known keys never move. */
+export function keepOrder(groups: TabGroup[], seen: readonly string[]): string[] {
+  const known = new Set(seen);
+  return [...seen, ...groups.map((g) => g.key).filter((k) => !known.has(k))];
+}
+
+/** `groups` sorted by their place in `order`; keys not in it go last. */
+export function inOrder(groups: TabGroup[], order: readonly string[]): TabGroup[] {
+  const rank = new Map(order.map((k, i) => [k, i]));
+  const at = (g: TabGroup): number => rank.get(g.key) ?? order.length;
+  return [...groups].sort((a, b) => at(a) - at(b));
+}
+
+/** Every tab in one list, oldest opened first. */
+function byOpened(items: TabItem[]): TabGroup[] {
+  if (items.length === 0) return [];
+  const tabs = [...items].sort((a, b) => a.openedAt - b.openedAt || a.id - b.id);
+  return [{ key: 'opened', label: 'All tabs', tabs }];
 }
 
 /** `account` for `account.rebar.is` under `rebar.is`; empty for the root itself. */
