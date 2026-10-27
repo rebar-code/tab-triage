@@ -7,7 +7,7 @@ import {
   siteOrigins,
   textMatches,
 } from './filters';
-import { formatAge, groupTabs } from './group';
+import { formatAge, groupTabs, inOrder, keepOrder } from './group';
 import { toItems, learnedSupabaseNames, type RawTab } from './items';
 import { createPrewarm, needsLoad, type Prewarm, type TabState } from './prewarm';
 import { DEFAULT_RULES, dueRule } from './rules';
@@ -163,6 +163,54 @@ describe('groupTabs', () => {
       'Yesterday',
       'Older',
     ]);
+  });
+
+  it('keeps the first order when a group shrinks, and adds new groups last', () => {
+    const before = toItems(
+      [tab('https://a.com/1'), tab('https://a.com/2'), tab('https://b.com/1')],
+      emptySnapshot(),
+      NOW,
+    );
+    const seen = keepOrder(groupTabs(before, 'domain', NOW), []);
+    expect(seen).toEqual(['a.com', 'b.com']);
+
+    const after = toItems(
+      [
+        tab('https://a.com/1'),
+        tab('https://b.com/1'),
+        tab('https://b.com/2'),
+        tab('https://c.com/'),
+      ],
+      emptySnapshot(),
+      NOW,
+    );
+    const groups = groupTabs(after, 'domain', NOW);
+    expect(groups.map((g) => g.key)).toEqual(['b.com', 'a.com', 'c.com']);
+    const kept = keepOrder(groups, seen);
+    expect(inOrder(groups, kept).map((g) => g.key)).toEqual(['a.com', 'b.com', 'c.com']);
+  });
+
+  it('lists every tab in one group, oldest opened first', () => {
+    const snap = emptySnapshot();
+    snap.opened['https://b.com/old'] = NOW - 5 * DAY;
+    snap.opened['https://a.com/mid'] = NOW - DAY;
+    const items = toItems(
+      [
+        tab('https://a.com/new', { lastAccessed: NOW }),
+        tab('https://a.com/mid'),
+        tab('https://b.com/old'),
+      ],
+      snap,
+      NOW,
+    );
+    const groups = groupTabs(items, 'opened', NOW);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.tabs.map((t) => t.url)).toEqual([
+      'https://b.com/old',
+      'https://a.com/mid',
+      'https://a.com/new',
+    ]);
+    expect(groupTabs([], 'opened', NOW)).toEqual([]);
   });
 });
 

@@ -6,6 +6,7 @@
     Copy,
     GitMerge,
     Globe,
+    List,
     ListFilter,
     Search,
     Settings,
@@ -17,7 +18,14 @@
   import { closeTabs, focusTab, saveTabs, undoLastClose } from '../lib/actions';
   import { needsPage, newFilter } from '../lib/filters';
   import { pageMatchIds } from '../lib/page-check';
-  import { groupTabs, matchesQuery, type GroupMode, type TabGroup } from '../lib/group';
+  import {
+    groupTabs,
+    inOrder,
+    keepOrder,
+    matchesQuery,
+    type GroupMode,
+    type TabGroup,
+  } from '../lib/group';
   import { isProtected } from '../lib/rules';
   import { rangeIds } from '../lib/selection';
   import { writeSupabaseName } from '../lib/storage';
@@ -66,7 +74,14 @@
   const visible = $derived(
     store.items.filter((t) => (preview ? preview.ids.has(t.id) : matchesQuery(t, query))),
   );
-  const groups = $derived(groupTabs(visible, mode, store.now));
+  // Domain order as first shown, so closing tabs never moves a group. Reset on a mode change.
+  let seen: string[] = [];
+  const groups = $derived.by(() => {
+    const shown = groupTabs(visible, mode, store.now);
+    if (mode !== 'domain') return shown;
+    seen = keepOrder(groupTabs(store.items, mode, store.now), seen);
+    return inOrder(shown, seen);
+  });
   const order = $derived(
     groups.flatMap((g) => (collapsed.has(g.key) ? [] : g.tabs.map((t) => t.id))),
   );
@@ -128,6 +143,11 @@
       if (all) selected.delete(t.id);
       else selected.add(t.id);
     }
+  }
+
+  function setMode(next: GroupMode): void {
+    seen = [];
+    mode = next;
   }
 
   function toggleCollapse(key: string): void {
@@ -287,14 +307,21 @@
           class:on={mode === 'domain'}
           title="By domain"
           aria-pressed={mode === 'domain'}
-          onclick={() => (mode = 'domain')}><Globe size={15} /></button
+          onclick={() => setMode('domain')}><Globe size={15} /></button
         >
         <button
           class="icon-button"
           class:on={mode === 'recent'}
           title="By last viewed"
           aria-pressed={mode === 'recent'}
-          onclick={() => (mode = 'recent')}><Clock size={15} /></button
+          onclick={() => setMode('recent')}><Clock size={15} /></button
+        >
+        <button
+          class="icon-button"
+          class:on={mode === 'opened'}
+          title="All tabs, oldest first"
+          aria-pressed={mode === 'opened'}
+          onclick={() => setMode('opened')}><List size={15} /></button
         >
       </div>
     </div>
@@ -377,37 +404,39 @@
         {@const tabs = closable(group.tabs)}
         {@const allSelected = tabs.length > 0 && tabs.every((t) => selected.has(t.id))}
         <section data-testid="group" data-group={group.key}>
-          <div class="group-head" class:selecting={selectedItems.length > 0}>
-            <span class="check">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                disabled={tabs.length === 0}
-                aria-label="Select group"
-                onclick={(e) => {
-                  toggleGroup(group);
-                  e.currentTarget.checked = allSelected;
-                }}
-              />
-            </span>
-            <button class="group-title" onclick={() => toggleCollapse(group.key)}>
-              {#if mode === 'domain' && group.tabs[0]}
-                <img src={faviconUrl(group.tabs[0].url)} alt="" width="14" height="14" />
-              {/if}
-              <span class="name">{group.label}</span>
-              <span class="n">{group.tabs.length}</span>
-              <span class="chevron" class:collapsed={collapsed.has(group.key)}>
-                <ChevronDown size={13} />
+          {#if mode !== 'opened'}
+            <div class="group-head" class:selecting={selectedItems.length > 0}>
+              <span class="check">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  disabled={tabs.length === 0}
+                  aria-label="Select group"
+                  onclick={(e) => {
+                    toggleGroup(group);
+                    e.currentTarget.checked = allSelected;
+                  }}
+                />
               </span>
-            </button>
-            {#if tabs.length}
-              <button
-                class="icon-button danger close-group"
-                title="Close all {tabs.length}"
-                onclick={() => close(tabs)}><Trash size={14} /></button
-              >
-            {/if}
-          </div>
+              <button class="group-title" onclick={() => toggleCollapse(group.key)}>
+                {#if mode === 'domain' && group.tabs[0]}
+                  <img src={faviconUrl(group.tabs[0].url)} alt="" width="14" height="14" />
+                {/if}
+                <span class="name">{group.label}</span>
+                <span class="n">{group.tabs.length}</span>
+                <span class="chevron" class:collapsed={collapsed.has(group.key)}>
+                  <ChevronDown size={13} />
+                </span>
+              </button>
+              {#if tabs.length}
+                <button
+                  class="icon-button danger close-group"
+                  title="Close all {tabs.length}"
+                  onclick={() => close(tabs)}><Trash size={14} /></button
+                >
+              {/if}
+            </div>
+          {/if}
           {#if !collapsed.has(group.key)}
             {#each group.tabs as item (item.id)}
               <TabRow
