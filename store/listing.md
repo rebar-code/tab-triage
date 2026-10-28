@@ -30,7 +30,7 @@ Open it with the toolbar icon or Alt+Shift+T.
 
 Private by design: no servers, no analytics. Everything stays in your browser. Open source (MIT): https://github.com/rebar-code/tab-triage
 
-**Images:** `icon-128.png` (store icon, from `public/icons/`), `screenshot-1.png` and `screenshot-2.png` (1280x800), `promo-small.png` (440x280).
+**Images:** `icon-128.png` (store icon, from `public/icons/`), `screenshot-1.png` and `screenshot-2.png` (1280x800), `promo-small.png` (440x280), `promo-marquee.png` (1400x560).
 
 **Homepage URL:** https://github.com/rebar-code/tab-triage
 **Support URL:** https://github.com/rebar-code/tab-triage/issues
