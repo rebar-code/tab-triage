@@ -21,7 +21,8 @@ Too many tabs? Tab Triage puts every open tab in a side panel, grouped by site, 
 - Select with click, Shift-click or Cmd-click, then close in one go.
 - GitHub pull requests show their state. One click closes every merged PR tab.
 - One click closes duplicate tabs.
-- Filters close tabs by site, URL, title, days not viewed, or text on the page. Pin a filter to keep it as a button.
+- Filter by what a page shows, on any site. Point at an element, like a CRM status that reads "Open sale lead", and see every tab in that state.
+- Filters also match site, URL, title or days not viewed. Pin a filter to keep it as a button.
 - Save tabs for later. Optional rules close stale tabs for you.
 - Cmd-Z puts closed tabs back.
 
