@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tab Triage",
   "version": "0.1.0",
-  "description": "Group, sort and bulk-close tabs. Knows when your PRs merged.",
+  "description": "Group, sort and bulk-close tabs from every Chrome window. Spots tabs of merged GitHub PRs.",
   "minimum_chrome_version": "121",
   "permissions": ["tabs", "storage", "sidePanel", "alarms", "favicon", "scripting"],
   "host_permissions": ["https://github.com/*"],

@@ -7,7 +7,7 @@ Paste these into the Developer Dashboard. Images are in this folder.
 **Name:** Tab Triage (from the manifest)
 
 **Summary** (manifest description, max 132 chars):
-Group, sort and bulk-close tabs. Knows when your PRs merged.
+Group, sort and bulk-close tabs from every Chrome window. Spots tabs of merged GitHub PRs.
 
 **Category:** Tools
 
@@ -15,22 +15,22 @@ Group, sort and bulk-close tabs. Knows when your PRs merged.
 
 **Description:**
 
-Too many tabs? Tab Triage puts every open tab in a side panel, grouped by site, so you can see what you have and close what you are done with.
+Too many tabs? Tab Triage puts every open tab, from every Chrome window, in one side panel, grouped by site. See what you have open and close the tabs you are done with.
 
-- Group by site or by last viewed. Search across every window.
+- Tabs from all your Chrome windows in one list. Group by site or by last viewed, and search them all.
 - Select with click, Shift-click or Cmd-click, then close in one go.
-- GitHub pull requests show their state. One click closes every merged PR tab.
+- Tabs of GitHub pull requests show the PR's state: open, draft or merged. One click closes the tabs of merged PRs. Tab Triage only manages your tabs; it never changes anything on GitHub.
 - One click closes duplicate tabs.
-- Filter by what a page shows, on any site. Point at an element, like a CRM status that reads "Open sale lead", and see every tab in that state.
-- Filters also match site, URL, title or days not viewed. Pin a filter to keep it as a button.
+- Filter by what a page shows, on any site. Point at an element, like a CRM status that reads "Open sale lead", and find every open tab in that state.
+- Filter tabs by site, URL, title or days not viewed. Pin a filter to keep it as a button.
 - Save tabs for later. Optional rules close stale tabs for you.
-- Cmd-Z puts closed tabs back.
+- Cmd-Z reopens the tabs you just closed.
 
 Open it with the toolbar icon or Alt+Shift+T.
 
 Private by design: no servers, no analytics. Everything stays in your browser. Open source (MIT): https://github.com/rebar-code/tab-triage
 
-**Images:** `icon-128.png` (store icon, from `public/icons/`), `screenshot-1.png` and `screenshot-2.png` (1280x800), `promo-small.png` (440x280).
+**Images:** `icon-128.png` (store icon, from `public/icons/`), `screenshot-1.png` and `screenshot-2.png` (1280x800), `promo-small.png` (440x280), `promo-marquee.png` (1400x560).
 
 **Homepage URL:** https://github.com/rebar-code/tab-triage
 **Support URL:** https://github.com/rebar-code/tab-triage/issues
